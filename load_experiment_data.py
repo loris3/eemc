@@ -132,15 +132,15 @@ def load_data_and_estimators(results_only=False):
     ]
     for model in MODELS:
         estimators.extend([
-                        # DataInfEstimator(model,
-                        #     train_dataset, train_dataset_name, train_dataset_split,
-                        #     test_dataset, test_dataset_name, test_dataset_split, eval_mode=True),
+                        DataInfEstimator(model,
+                            train_dataset, train_dataset_name, train_dataset_split,
+                            test_dataset, test_dataset_name, test_dataset_split, eval_mode=True),
                         # BM25Estimator(model,
                         #     train_dataset, train_dataset_name, train_dataset_split,
                         #     test_dataset, test_dataset_name, test_dataset_split, eval_mode=True),
-            LESSEstimator(model,
-                        train_dataset, train_dataset_name, train_dataset_split,
-                        test_dataset, test_dataset_name, test_dataset_split, eval_mode=True),
+            # LESSEstimator(model,
+            #             train_dataset, train_dataset_name, train_dataset_split,
+            #             test_dataset, test_dataset_name, test_dataset_split, eval_mode=True),
 
         ])
         
