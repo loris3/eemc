@@ -1,0 +1,10 @@
+import argparse
+
+
+def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--train_dataset_name", required=True)
+    parser.add_argument("--train_dataset_split", required=True)
+    parser.add_argument("--test_dataset_name", required=True)
+    parser.add_argument("--test_dataset_split", required=True)
+    return parser

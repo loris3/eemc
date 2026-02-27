@@ -23,7 +23,12 @@ def load_lora_model(repo_id: str):
     """
 
     # Load adapter config
-    adapter_path = hf_hub_download(repo_id=repo_id, filename="adapter_config.json")
+    adapter_path = None
+    try:
+        adapter_path = hf_hub_download(repo_id=repo_id, filename="adapter_config.json")
+    except:
+        adapter_path = os.path.join(repo_id, "adapter_config.json")
+    print("adapter_path",adapter_path)
     adapter_config = json.load(open(adapter_path))
 
     base_model_name_or_path = adapter_config["base_model_name_or_path"]
@@ -35,14 +40,10 @@ def load_lora_model(repo_id: str):
             hf_hub_download(repo_id=repo_id, filename="chat_template.jinja")
         ).read()
     except Exception as e:
-        print(f"Could not download from Hugging Face Hub: {e}")
-        # Fallback to local file
-        if os.path.exists("./chat_template.jinja"):
-            with open("./chat_template.jinja", "r") as f:
-                chat_template = f.read()
-        else:
-            raise FileNotFoundError(f"No chat_template.jinja found locally at {local_path}")
-
+       
+        with open(os.path.join(repo_id,"./chat_template.jinja"), "r") as f:
+            chat_template = f.read()
+        
     # Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
     tokenizer.chat_template = chat_template
