@@ -56,7 +56,7 @@ class IFEngineGeneration(object):
         gradient_out_dir,
         lambda_const_param=10,
         batch_size=32,
-        val_batch_size=1000,
+        val_batch_size=10000,
         inner_batch_size=1
     ):
         with torch.no_grad():

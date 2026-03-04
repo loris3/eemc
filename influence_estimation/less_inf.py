@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from influence_estimation.util import tokenize_dataset
 
 logging.basicConfig(
-    level=logging.DEBUG,  
+    level=logging.INFO,  
     format="%(asctime)s [%(levelname)s] [%(processName)s] %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),

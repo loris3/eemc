@@ -8,7 +8,6 @@ import os
 from contextlib import redirect_stdout
 from functools import lru_cache
 import torch
-from transformers import GenerationConfig
 import json
 import numpy as np
 from huggingface_hub import hf_hub_download

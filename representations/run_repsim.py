@@ -19,7 +19,7 @@ def main(args=None):
                                                            args.train_dataset_split, 
                                                            args.test_dataset_split)
     
-    model, tokenizer = load_lora_model(args.model)
+    model, tokenizer = load_lora_model(args.model) if not args.results_only else (None, None)
 
     tokenized_dataset = tokenize_dataset(
         test_dataset,
@@ -27,7 +27,7 @@ def main(args=None):
         max_length=512,
         num_proc=10,
         re_index=False,
-    )
+    ) if not args.results_only else None
     rep = RepSimRepresentation(model,
                 tokenized_dataset, 
                 train_dataset, 
@@ -37,6 +37,7 @@ def main(args=None):
                 args.test_dataset_name, 
                 args.test_dataset_split, 
                 args.model,
+                results_only=args.results_only,
                 name=f"rep_sim")
     similarity_matrix = rep.compute()
     del train_dataset, test_dataset, tokenizer, model

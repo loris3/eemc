@@ -1,3 +1,4 @@
+# python3 -m representations.run_norm_attn --model ./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42 --train_dataset_name loris3/ftrace_date-lm_conversational --train_dataset_split train --test_dataset_split train --test_dataset_name loris3/ftrace_date-lm_conversational
 import argparse
 from utils import load_lora_model
 
@@ -13,13 +14,13 @@ def main(args=None):
     parser = argparse.ArgumentParser()
     parser = add_common_args(parser)
     args = parser.parse_args(args)
-
+    print(args)
     train_dataset, test_dataset = load_data_and_estimators(args.train_dataset_name, 
                                                            args.test_dataset_name, 
                                                            args.train_dataset_split, 
                                                            args.test_dataset_split)
     
-    model, tokenizer = load_lora_model(args.model)
+    model, tokenizer = load_lora_model(args.model) if not args.results_only else (None, None)
 
     tokenized_dataset = tokenize_dataset(
         test_dataset,
@@ -27,7 +28,8 @@ def main(args=None):
         max_length=512,
         num_proc=10,
         re_index=False,
-    )
+    ) if not args.results_only else None
+
     rep = NormalizedAttentionMapRepresentation(
                  model,
                  tokenized_dataset, 
@@ -38,6 +40,7 @@ def main(args=None):
                  args.test_dataset_name, 
                  args.test_dataset_split, 
                  args.model,
+                 results_only=args.results_only,
         max_seq_len=512,  
         )
     similarity_matrix = rep.compute()

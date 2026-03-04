@@ -24,10 +24,11 @@ def main(args=None):
         test_dataset,
         args.test_dataset_name,
         args.test_dataset_split,
+        eval_mode=True # must be True so that cache/gradients not /tmp/cache... is used
       )
 
 
-    rep = GradientRepresentation(estimator_less)
+    rep = GradientRepresentation(estimator_less, results_only=args.results_only)
 
     similarity_matrix = rep.compute()
     del train_dataset, test_dataset

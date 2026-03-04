@@ -21,15 +21,15 @@ def main(args=None):
     
 
     # use a tokenizer that supports apply_chat_template
-    _,tokenizer_sample_model = load_lora_model("loris3/Llama-3.2-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42")
+    _,tokenizer_sample_model = load_lora_model("loris3/Llama-3.2-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42") if not args.results_only else (None, None)
     tokenized_sample_dataset = tokenize_dataset(
         test_dataset,
         tokenizer_sample_model,
         max_length=512,
         num_proc=10,
         re_index=False,
-    )
-    decoded_texts_sample = [tokenizer_sample_model.decode(m["input_ids"]) for m in tokenized_sample_dataset]
+    ) if not args.results_only else None
+    decoded_texts_sample = [tokenizer_sample_model.decode(m["input_ids"]) for m in tokenized_sample_dataset] if not args.results_only else None
 
     print("sbert")
     rep = SBERTRepresentation("all-MiniLM-L6-v2", decoded_texts_sample,
@@ -39,6 +39,7 @@ def main(args=None):
                     test_dataset, 
                     args.test_dataset_name, 
                     args.test_dataset_split, 
+                    results_only=args.results_only
                     )
     similarity_matrix = rep.compute()
     del train_dataset, test_dataset
