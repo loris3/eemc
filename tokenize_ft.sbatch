@@ -8,7 +8,10 @@
 source .env
 
 python3 --version
-python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset loris3/ftrace_date-lm_conversational   --train_split train  
+python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset allenai/tulu-3-sft-personas-code   --train_split train  
+python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset allenai/tulu-3-sft-personas-math   --train_split train  
+python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset allenai/tulu-3-hard-coded-10x   --train_split train  
+# python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset loris3/ftrace_date-lm_conversational   --train_split train  
 # python3  tokenize_dataset_ft.py  --base_model allenai/OLMo-2-0425-1B   --train_dataset allenai/tulu-3-sft-olmo-2-mixture-0225   --train_split train   
 # python3  tokenize_dataset_ft.py  --base_model meta-llama/Llama-3.2-1B   --train_dataset allenai/tulu-3-sft-olmo-2-mixture-0225   --train_split train   
 # python3  tokenize_dataset_ft.py  --base_model Qwen/Qwen2.5-0.5B  --train_dataset allenai/tulu-3-sft-olmo-2-mixture-0225   --train_split train   

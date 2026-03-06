@@ -118,6 +118,10 @@ def main(args=None):
         score_name = exp["score_name"]
         normalize = exp["normalize"]
         k = exp.get("k")
+        print(k, features_a.shape[0])
+        if k is not None and k > features_a.shape[0]:
+            print("Skipping k=", k)
+            continue
         if k is None:
             out_path = os.path.join(
                 results_folder,
@@ -139,6 +143,7 @@ def main(args=None):
             continue
         feats_a = features_a_normalized if normalize else features_a
         feats_b = features_b_normalized if normalize else features_b
+        
 
         start_time = time.time()
         score = metric_fns[score_name](feats_a, feats_b, k)

@@ -32,7 +32,10 @@ class LESSEstimator(BaseEstimator):
         super().__init__(model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device,
                          param_list=[
                              proj_dim,
-                             normalize], eval_mode=eval_mode
+                             normalize], 
+                         param_list_gradients=[
+                             proj_dim],
+                         eval_mode=eval_mode
                          )
         self.normalize = normalize
         self.proj_dim = proj_dim
@@ -60,32 +63,19 @@ class LESSEstimator(BaseEstimator):
             self.get_gradients(self.test_dataset,  gradient_type="sgd", dataset_name=self.test_dataset_name, dataset_split_name=self.test_dataset_split,gradient_cache_dir=self.gradient_cache_dir, gradient_out_dir=self.gradient_out_dir)
             grads_test = self.load_gradients(self.test_dataset, self.test_dataset_name, self.test_dataset_split)
      
-        
-        
-        # flat_grads_train = torch.stack(list(grads_train.values()),dim=0)
-        # flat_grads_test = torch.stack(list(grads_test.values()),dim=0)
 
-        # self.influence_estimate = pd.DataFrame(-torch.einsum('nd,md->mn', flat_grads_train, flat_grads_test).numpy())
-        
      
         n_train = len(self.train_dataset)
         n_test = len(grads_test)
 
         flat_grads_test = torch.cat([g.view(1, -1) for g in grads_test.values()], dim=0)  
 
+        if self.normalize: # we cache unnormalized gradients
+            flat_grads_test = normalize(flat_grads_test, dim=1, eps=1e-12)
     
         influence_matrix = torch.empty(n_test, n_train)
 
 
-        # for i in tqdm(range(n_train), desc="Dot products"):
-        #     train_grad = self.get_gradient(self.train_dataset, self.train_dataset_name, self.train_dataset_split, i)
-        #     flat_train_grad = train_grad.view(1, -1)  # (1, D)
-            
-
-        #     dots = -flat_train_grad @ flat_grads_test.T  
-            
-
-        #     influence_matrix[:, i] = dots.squeeze(0)
         
         batch_size = 128  
         for start in tqdm(range(0, n_train, batch_size), desc="Dot products"):
@@ -101,6 +91,9 @@ class LESSEstimator(BaseEstimator):
             flat_train_grads = torch.stack(
                 [g.view(-1) for g in train_grads], dim=0
             ) 
+                        
+            if self.normalize: # we cache unnormalized gradients
+                flat_train_grads = normalize(flat_train_grads, dim=1, eps=1e-12)
          
             dots = -flat_train_grads @ flat_grads_test.T 
 
@@ -255,16 +248,7 @@ def _get_gradients_batch(dataloader, rank, model, gradient_type, adam_optimizer_
         else:
             m, v = None, None
 
-        # number_of_params = get_number_of_params(model)
-        # projector = CudaProjector(
-        #     grad_dim=number_of_params,
-        #     proj_dim=proj_dim,
-        #     seed=0,
-        #     proj_type=ProjectionType.rademacher,
-        #     device=device,
-        #     block_size=block_size,
-        #     max_batch_size=projector_batch_size,
-        # )
+
         dummy_input = torch.tensor([[0,0,0,0]]).to(device)
         outputs = model(input_ids=dummy_input, labels=dummy_input)
         loss = outputs.loss

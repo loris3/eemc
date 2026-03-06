@@ -121,6 +121,8 @@ if __name__ == "__main__":
     )
     
     dataset = load_dataset(data_args.train_dataset, split="train")
+    if "prompt" in dataset.column_names: # use "messages"
+        dataset = dataset.remove_columns("prompt")
     trainer = SFTTrainer(
        
         model =model_args.base_model,

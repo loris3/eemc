@@ -18,7 +18,7 @@ for exp in experiments:
             "--train_dataset_split", exp["train_dataset_split"],
             "--test_dataset_name", exp["test_dataset_name"],
             "--test_dataset_split", exp["test_dataset_split"],
-            "--top_k", "50 100 200 500", #"10 20",
+            "--top_k", "10 20 50 100 200 500", #"10 20",
             "--sim_script_a", script_a,
             "--sim_script_b", script_b,
             "--experiment_name", exp["name"],

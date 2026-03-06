@@ -34,7 +34,7 @@ def copy_file(src_file, src_root, dst_root):
         print(f"Error copying {src_file} to {dst_file}: {e}")
    
 class BaseEstimator(ABC):
-    def __init__(self, model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device="cuda", param_list=[], eval_mode=False):
+    def __init__(self, model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device="cuda", param_list=[], param_list_gradients=[], eval_mode=False):
         self.model_path = model_path
      
         self.train_dataset_split = train_dataset_split
@@ -46,11 +46,14 @@ class BaseEstimator(ABC):
         self.test_dataset = test_dataset     
         self.device = device
         self.param_string = "-".join([str(s) for s in param_list])
-        
+        if len(param_list_gradients) == 0:
+            self.param_string_gradients = self.param_string
+        else:
+            self.param_string_gradients = "-".join([str(s) for s in param_list_gradients])
         self.gradient_cache = {}
         
-        self.gradient_cache_dir = os.path.join("/tmp/cache/gradients/full", self.__class__.__name__, self.param_string, os.path.basename(self.model_path))
-        self.gradient_out_dir = os.path.join("cache/gradients/full", self.__class__.__name__, self.param_string, os.path.basename(self.model_path))
+        self.gradient_cache_dir = os.path.join("/tmp/cache/gradients/full", self.__class__.__name__, self.param_string_gradients, os.path.basename(self.model_path))
+        self.gradient_out_dir = os.path.join("cache/gradients/full", self.__class__.__name__, self.param_string_gradients, os.path.basename(self.model_path))
         
         if eval_mode:
             self.gradient_cache_dir = self.gradient_out_dir
