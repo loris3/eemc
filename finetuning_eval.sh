@@ -8,16 +8,16 @@ cd "$CONTAINER_WORKDIR/olmes" || { echo "Clone olmes first!"; exit 1; }
 
 tasks=(
     olmo3:base_easy:math_bpb
-    olmo3:base_easy:code_bpb
+    # olmo3:base_easy:code_bpb
 )
 
 models=(
     "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-math_lr1e-05_seed42"
-    "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42"
+#     "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42"
 )
 
 baseline_models=(
-    "allenai/OLMo-2-0425-1B-SFT"
+    # "allenai/OLMo-2-0425-1B-SFT"
     # "Qwen/Qwen2.5-0.5B-Instruct"
     # "meta-llama/Llama-3.2-1B-Instruct"
 )
@@ -127,8 +127,78 @@ python3 -m oe_eval.launch \
     --gpus=1 \
     --task "\$task" \
     --output-dir "\$out_dir"
+
+cd ..
+python3 qa_eval.py     --model_path "olmes/\$model"     --dataset loris3/ftrace_date-lm_conversational --split=train    
+python3 qa_eval.py     --model_path "olmes/\$model"     --dataset loris3/squad_v2_conversational --split=validation    
+python3 qa_eval.py     --model_path "olmes/\$model"     --dataset allenai/tulu-3-hard-coded-10x --split=train    
 EOL
 
 
-sbatch --dependency=afterok:$merge_jid "$eval_script"
+sbatch --dependency=afterany:$merge_jid "$eval_script"
+
+
+
+
+
+
+
+
+
+
+
+
+
+eval_list=()
+
+for entry in "${models[@]}"; do
+    adapter_model=$(echo "$entry" | cut -d' ' -f2)
+    merged_model_dir="./models/${adapter_model}"
+    out_dir="$EVALDIR/${adapter_model}"
+    eval_list+=("$merged_model_dir|$out_dir")
+done
+for base_model in "${baseline_models[@]}"; do
+    out_dir="$EVALDIR/${base_model}"
+    eval_list+=("$base_model|$out_dir")
+done
+
+
+export EVAL_LIST="$(printf "%s\n" "${eval_list[@]}")"
+
+eval_array_length=$(echo "$EVAL_LIST" | wc -l)
+eval_script=$(mktemp)
+cat > "$eval_script" <<EOL
+#!/bin/bash
+#SBATCH --job-name="[EEMC] Custom Evals"
+#SBATCH --nodelist=$NODELIST
+#SBATCH --container-mount-home
+#SBATCH --partition=p_datamining
+#SBATCH --account=datamining
+#SBATCH --container-image="$CONTAINER_IMAGE_EVAL"
+#SBATCH --requeue
+#SBATCH --mem=32GB
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:1
+#SBATCH --time=0-12:00:00
+#SBATCH --container-workdir=$CONTAINER_WORKDIR
+#SBATCH --array=0-$(($eval_array_length - 1))%12
+
+source .env
+export HF_HUB_ENABLE_HF_TRANSFER=0
+
+
+
+IFS=\$'\n' read -r -d '' -a items <<< "\$EVAL_LIST"
+IFS='|' read -r model out_dir <<< "\${items[\$SLURM_ARRAY_TASK_ID]}"
+model_name=\$(basename "\$model")
+echo "Evaluating model=\$model out_dir=\$out_dir model_name=\$model_name on custom tasks "
+
+python3 qa_eval.py     --model_path "\$model"     --dataset loris3/ftrace_date-lm_conversational --split=train    
+python3 qa_eval.py     --model_path "\$model""     --dataset loris3/squad_v2_conversational --split=validation    
+python3 qa_eval.py     --model_path "\$model"     --dataset allenai/tulu-3-hard-coded-10x --split=train    
+EOL
+
+
+sbatch  "$eval_script"
 

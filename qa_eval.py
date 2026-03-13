@@ -54,7 +54,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=64)
     args = parser.parse_args()
 
-    model_name = os.path.basename(args.model_path.rstrip("/"))
+    model_name = os.path.basename(args.model_path.rstrip("/")).replace("-merged","")
   
 
 
@@ -64,7 +64,7 @@ def main():
         dataset = dataset.select(range(args.max_samples))
 
 
-    model, tokenizer = load_model_and_tokenizer(args.model_path)
+    model, tokenizer = load_model_and_tokenizer(args.model_path.replace("-merged",""))
     device = 0 if torch.cuda.is_available() else -1
 
 
@@ -96,7 +96,7 @@ def main():
             user_prompts,
             do_sample=False,
             temperature=1.0,
-            max_new_tokens=128,
+            max_new_tokens=512 if "hard-coded" in args.dataset else 128,
             top_p=1.0,
             return_full_text=False
         )

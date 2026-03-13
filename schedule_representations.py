@@ -11,20 +11,12 @@ experiments = [
     #     "test_dataset_name": "loris3/tulu-3-sft-olmo-2-mixture-0225-sample",
     #     "test_dataset_split": "test",
     # },
-    # {
-    #     "name": "ftrace",
-    #     "model": "./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42",
-    #     "train_dataset_name": "loris3/ftrace_date-lm_conversational",
-    #     "train_dataset_split": "train",
-    #     "test_dataset_name": "loris3/ftrace_date-lm_conversational",
-    #     "test_dataset_split": "train",
-    # },
     {
-        "name": "hardcoded",
-        "model": "./models/OLMo-2-0425-1B_tulu-3-hard-coded-10x_lr1e-05_seed42",
-        "train_dataset_name": "allenai/tulu-3-hard-coded-10x",
+        "name": "ftrace",
+        "model": "./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42",
+        "train_dataset_name": "loris3/ftrace_date-lm_conversational",
         "train_dataset_split": "train",
-        "test_dataset_name": "allenai/tulu-3-hard-coded-10x",
+        "test_dataset_name": "loris3/ftrace_date-lm_conversational",
         "test_dataset_split": "train",
     },
     #     {
@@ -43,30 +35,34 @@ experiments = [
     #     "test_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
     #     "test_dataset_split": "test",
     # },
-            {
-        "name": "squad_v2",
-        "model": "./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42",
-        "train_dataset_name": "loris3/squad_v2_conversational-sample",
-        "train_dataset_split": "train",
-        "test_dataset_name": "loris3/squad_v2_conversational-sample",
-        "test_dataset_split": "test",
-    },
+    #         {
+    #     "name": "squad_v2",
+    #     "model": "./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42",
+    #     "train_dataset_name": "loris3/squad_v2_conversational-sample",
+    #     "train_dataset_split": "train",
+    #     "test_dataset_name": "loris3/squad_v2_conversational-sample",
+    #     "test_dataset_split": "test",
+    # },
 
 ]
 
 # Find all run_*.py scripts
 scripts_no_gpu = [
-"representations/run_bm25.py",
+"representations/run_gradsim_normalized.py",
+"representations/run_gradsim_unnormalized.py",
+"representations/run_gradsim_adam.py",
 "representations/run_datainf.py",
+"representations/run_bm25.py",
 "representations/run_jaccard.py",
-"representations/run_less_gradients.py",
 "representations/run_tfidf.py"
 ]
 
 scripts_gpu = [
-    "representations/run_sbert.py",
+    "representations/run_embd_Qwen3-Embedding-8B.py",
+    "representations/run_embd_KaLM-Embedding-Gemma3-12B-2511.py",
+    "representations/run_embd_llama-embed-nemotron-8b.py",
     "representations/run_repsim.py",
-    "representations/run_model_embd.py",
+    "representations/full_model.py",
     "representations/run_norm_attn.py",
 ]
 scripts = scripts_no_gpu + scripts_gpu
@@ -82,7 +78,18 @@ def main():
                 "--test_dataset_name", exp["test_dataset_name"],
                 "--test_dataset_split", exp["test_dataset_split"]
             ]
-            cmd = ["./schedule.sh", "representations/run_template.sbatch" if script_path not in scripts_gpu else "representations/run_template_gpu.sbatch", script_path.replace(".py","").replace("/",".")] + args
+           # Determine which sbatch script to use
+            sbatch_file = "representations/run_template_gpu.sbatch" if script_path in scripts_gpu else "representations/run_template.sbatch"
+
+            # Convert script path to module-style name
+            module_name = script_path.replace(".py", "").replace("/", ".")
+
+            # Build a readable job name
+            job_label = script_path.split("/")[1].split(".")[0].replace("run_", "")
+            job_name = f"[EEMC] Representation {job_label} for {exp['model']}"
+
+            # Combine all parts into the command
+            cmd = ["./schedule.sh", sbatch_file, module_name, "--job-name", job_name] + args
             print("Scheduling:", " ".join(cmd))
             subprocess.run(cmd)
 if __name__ == "__main__":

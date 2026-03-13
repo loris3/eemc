@@ -17,10 +17,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import torch
+import torch.nn.functional as F
+from tqdm import tqdm
 import pickle
 
-DEBUG = False
+DEBUG = int(os.getenv("DEBUG", "0"))
+
+if DEBUG:
+    print(f"Debug mode enabled (DEBUG={DEBUG})")
 
 
 def copy_file(src_file, src_root, dst_root):
@@ -108,27 +114,7 @@ class BaseRepresentation(ABC):
         """
         pass
 
-    def compute_doc(self, idx: int, force: bool = False) -> torch.Tensor:
-        path = os.path.join(self.cache_dir, f"doc_{idx}.pt")
-        local_path = os.path.join(self.local_cache_dir, f"doc_{idx}.pt")
-        if not force and os.path.exists(local_path):
-            try:
-                return torch.load(local_path, map_location="cpu")
-            except Exception:
-                pass
-        if not force and os.path.exists(path):
-            try:
-                return torch.load(path, map_location="cpu")
-            except Exception:
-                pass
-        if self.results_only and not os.path.exists(path):
-            raise RuntimeError(
-                f"results_only=True but cache not found for doc {idx}: {path}"
-            )
-
-        emb = self._embed_doc(idx)
-        torch.save(emb, path)
-        return emb
+   
 
     def compute_doc(self, idx: int, force: bool = False) -> torch.Tensor:
         path = os.path.join(self.cache_dir, f"doc_{idx}.pt")
@@ -142,22 +128,24 @@ class BaseRepresentation(ABC):
         emb = self._embed_doc(idx)
         torch.save(emb, path)
         return emb
-
-
- 
     def compute(self, cache_embds=True) -> torch.Tensor:
-        embeddings = []
-        for i in tqdm(self.test_dataset["indices"][0:50] if DEBUG else self.test_dataset["indices"],
-                    desc=f"Computing {self.name} embeddings"):
-            emb = self.compute_doc(i, force=not cache_embds)
-            if self.results_only:
-                embeddings.append(emb)
+        indices = self.test_dataset["indices"][0:DEBUG] if DEBUG else self.test_dataset["indices"]
+
+        embeddings = [None] * len(indices) if self.results_only else None
+
+        with tqdm(total=len(indices), desc=f"Computing {self.name} embeddings") as pbar:
+            for pos, i in enumerate(indices):
+                emb = self.compute_doc(i, force=not cache_embds)
+                if self.results_only:
+                    embeddings[pos] = emb
+                pbar.update(1)
+
         if self.results_only:
             embeddings = torch.vstack(embeddings)
-            
             if self.normalize_vectors:
                 embeddings = F.normalize(embeddings, p=2, dim=1)
             return embeddings
+    
 
 # --- GradientRepresentation ---
 class GradientRepresentation(BaseRepresentation):
@@ -182,84 +170,96 @@ class GradientRepresentation(BaseRepresentation):
             [idx]
         )[0].float()
        
-        return gradient.cpu().float()
+        return gradient.cpu()
 
 # --- FullModelRepresentation ---
 class FullModelRepresentation(BaseRepresentation):
     def __init__(self, model, tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
                  model_path, name="full_model", results_only=False):
+
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
-                         test_dataset, test_dataset_name, test_dataset_split, model_path,
-                         results_only=results_only)
-        self.model = model
+                         test_dataset, test_dataset_name, test_dataset_split,
+                         model_path, results_only=results_only)
+
         self.tokenized_dataset = tokenized_dataset
-        
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = model.to(self.device).eval()
+
     def _embed_doc(self, idx: int) -> torch.Tensor:
+
         if self.results_only:
             raise RuntimeError("results_only=True but no cache found")
+
         m = self.tokenized_dataset[idx]
-        device = "cuda"
-        self.model.to(device).eval()
-        input_ids = torch.tensor([m["input_ids"]], device=device)
-        attention_mask = torch.tensor([m["attention_mask"]], device=device)
-        with torch.no_grad():
-            outputs = self.model(input_ids=input_ids,
-                                 attention_mask=attention_mask,
-                                 output_hidden_states=True)
-        token_embeddings = outputs.hidden_states[-1]
-        mask = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+
+        input_ids = torch.tensor(m["input_ids"], device=self.device).unsqueeze(0)
+        attention_mask = torch.tensor(m["attention_mask"], device=self.device).unsqueeze(0)
+
+        with torch.inference_mode():
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+                return_dict=True
+            )
+
+        token_embeddings = outputs.hidden_states[-1]  # (1, n, d)
+        mask = attention_mask.unsqueeze(-1).float()   # (1, n, 1)
         masked_embeddings = token_embeddings * mask
-        sentence_embedding = (masked_embeddings.sum(dim=1) / mask.sum(dim=1))
+
+        sentence_embedding = masked_embeddings.sum(dim=1) / mask.sum(dim=1)
+
         return sentence_embedding.squeeze(0).cpu()
 
-# --- SBERTRepresentation ---
-class SBERTRepresentation(BaseRepresentation):
+
+class SentenceTransformerRepresentation(BaseRepresentation):
     def __init__(self, model_path, decoded_texts, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
                  results_only=False):
-        super().__init__(f"sbert_{model_path}", train_dataset, train_dataset_name, train_dataset_split,
+
+        super().__init__(f"embd_{model_path}", train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
                          model_path, results_only=results_only)
+
+        self.decoded_texts = decoded_texts
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         if not results_only:
             from sentence_transformers import SentenceTransformer
-            self.st_model = SentenceTransformer(model_path)
-        self.decoded_texts = decoded_texts
-        
+            self.st_model = SentenceTransformer(model_path, trust_remote_code=True)
+            self.st_model.to(self.device)
+
     def _embed_doc(self, idx: int) -> torch.Tensor:
         if self.results_only:
             raise RuntimeError("results_only=True but no cache found")
-        device = "cuda"
-        self.st_model.to(device)
-        text = self.decoded_texts[idx]
+
+        text = self.decoded_texts[idx]["text"]
         emb = self.st_model.encode([text])[0]
-        return torch.tensor(emb, dtype=torch.float32).cpu()
+        return torch.tensor(emb, dtype=torch.float32).to("cpu")
     
 # ----------------- NormalizedAttentionMapRepresentation -----------------
 class NormalizedAttentionMapRepresentation(BaseRepresentation):
     def __init__(self, model, tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
-                 model_path, max_seq_len=512, top_k_eig=128, name="spectral_attention", results_only=False):
+                 model_path, top_k_eig=128, name="spectral_attention", results_only=False):
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
                          model_path, results_only=results_only)
         self.model = model
         self.tokenized_dataset = tokenized_dataset
-        self.max_seq_len = max_seq_len
+        self.max_seq_len = model.config.max_position_embeddings
+        print("Max sequence length:", self.max_seq_len)
         self.top_k_eig = top_k_eig
-        
+        self.device ="cuda"
+        self.model.to(self.device).eval()
+
     def _embed_doc(self, idx: int) -> torch.Tensor:
-        if self.results_only:
-            raise RuntimeError(f"results_only=True but cache not found for doc {idx}")
-
         m = self.tokenized_dataset[idx]
-        device = next(self.model.parameters()).device
-        self.model.to(device).eval()
+        input_ids = torch.tensor([m["input_ids"]], device=self.device)
+        attention_mask = torch.tensor([m["attention_mask"]], device=self.device)
 
-        input_ids = torch.tensor([m["input_ids"]], device=device)
-        attention_mask = torch.tensor([m["attention_mask"]], device=device)
-
-        with torch.no_grad():
+        with torch.inference_mode():
             outputs = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -268,92 +268,86 @@ class NormalizedAttentionMapRepresentation(BaseRepresentation):
                 return_dict=True,
             )
 
-        if outputs.attentions is None:
-            raise ValueError("Model did not return attentions")
-
-        base_model = getattr(self.model, "get_base_model", lambda: self.model)()
-        transformer = getattr(base_model, "model", base_model)
-        layers = transformer.layers
-
-        value_acts, dense_weights = [], []
+        seq_len_use = min(input_ids.size(1), self.max_seq_len)
         num_layers = len(outputs.attentions)
+        num_heads = outputs.attentions[0].size(1)
+        hidden_size = outputs.hidden_states[0].size(-1)
+        head_size = hidden_size // num_heads
 
-        for l in range(num_layers):
-            layer_hidden = outputs.hidden_states[l + 1]
-            layer = layers[l]
-            v = layer.self_attn.v_proj(layer_hidden)
-            batch_size, seq_len_layer, hidden_size_layer = v.size()
-            num_heads_layer = outputs.attentions[l].size(1)
-            head_dim = hidden_size_layer // num_heads_layer
-            v = v.view(batch_size, seq_len_layer, num_heads_layer, head_dim).permute(0, 2, 1, 3)
-            value_acts.append(v)
-            o_proj = layer.self_attn.o_proj
-            w_orig = o_proj.weight
-            hidden_out, hidden_in = w_orig.size()
-            w = w_orig.view(num_heads_layer, hidden_out // num_heads_layer, hidden_in)
-            dense_weights.append(w)
+        base_model = getattr(self.model, "base_model", self.model)
+        layers = base_model.model.model.layers
 
         norm_maps = []
-        for l in range(num_layers):
-            v = value_acts[l][0]
-            w = dense_weights[l]
-            alpha = outputs.attentions[l][0]
-            seq_len_use = min(alpha.size(1), layers[l].self_attn.o_proj.weight.size(1))
-            layer_hidden = outputs.hidden_states[l + 1][0, :seq_len_use]
-            f_x = layers[l].self_attn.o_proj(layer_hidden)
+        for l, alpha_layer in enumerate(outputs.attentions):
+            layer_hidden = outputs.hidden_states[l + 1][0, :seq_len_use, :]  # (seq_len, hidden)
+            dense_weight = layers[l].self_attn.o_proj.weight
+            f_x = layer_hidden @ dense_weight.T
+            f_x = f_x.view(seq_len_use, num_heads, head_size).permute(1, 0, 2)  # (heads, seq_len, head_size)
+            f_x_norm = torch.linalg.norm(f_x, dim=-1)                             # (heads, seq_len)
 
-            for h in range(alpha.size(0)):
-                alpha_h = alpha[h, :seq_len_use, :seq_len_use]
-                f_x_norm = f_x.norm(dim=-1)
-                norm_map = alpha_h * f_x_norm.unsqueeze(0)
-                if seq_len_use < self.max_seq_len:
-                    pad = self.max_seq_len - seq_len_use
-                    norm_map = F.pad(norm_map, (0, pad, 0, pad), value=0)
-                norm_maps.append(norm_map)
 
-        norm_maps = torch.stack(norm_maps)
-        eigvals_all = torch.linalg.eigh(norm_maps, UPLO='U')[0]
-        topk_eigvals = eigvals_all[:, -self.top_k_eig:]
-        doc_vector = topk_eigvals.mean(dim=0)
+            alpha_h_all = alpha_layer[0, :, :seq_len_use, :seq_len_use]           # (heads, seq_len, seq_len)
+            f_x_norm_exp = f_x_norm.unsqueeze(2)                                  # (heads, seq_len, 1)
+            layer_map = (alpha_h_all * f_x_norm_exp).mean(dim=0)                  # (seq_len, seq_len)
+
+            if seq_len_use < self.max_seq_len:
+                pad = self.max_seq_len - seq_len_use
+                layer_map = F.pad(layer_map, (0, pad, 0, pad), value=0)
+
+            norm_maps.append(layer_map)
+
+        M_stacked = torch.stack(norm_maps, dim=0).reshape(-1, self.max_seq_len)
+        u, s, v = torch.linalg.svd(M_stacked, full_matrices=False)
+        k = min(self.top_k_eig, s.size(0))
+        doc_vector = s[:k]
+        print("doc_vector", doc_vector)
         return doc_vector.cpu()
-
 
 # ----------------- RepSimRepresentation -----------------
 class RepSimRepresentation(BaseRepresentation):
     def __init__(self, model, tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
                  model_path, name="rep_sim", results_only=False):
+
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
                          model_path, results_only=results_only)
-        self.model = model
+
         self.tokenized_dataset = tokenized_dataset
-        
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = model.to(self.device).eval()
+
     def _embed_doc(self, idx: int) -> torch.Tensor:
+
         if self.results_only:
             raise RuntimeError(f"results_only=True but cache not found for doc {idx}")
 
         m = self.tokenized_dataset[idx]
-        device = "cuda"
-        self.model.to(device).eval()
-        input_ids = torch.tensor([m["input_ids"]], device=device)
-        attention_mask = torch.tensor([m["attention_mask"]], device=device)
 
-        with torch.no_grad():
-            outputs = self.model(input_ids=input_ids,
-                                 attention_mask=attention_mask,
-                                 output_hidden_states=True,
-                                 return_dict=True)
+        input_ids = torch.tensor(m["input_ids"], device=self.device).unsqueeze(0)
+        attention_mask = torch.tensor(m["attention_mask"], device=self.device).unsqueeze(0)
+
+        with torch.inference_mode():
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+                return_dict=True
+            )
 
         last_hidden = outputs.hidden_states[-1]
-        seq_len = attention_mask.sum(dim=1) - 1
-        last_token_embedding = last_hidden[0, seq_len, :]
-        return last_token_embedding.cpu()
+
+        # index of last non-padding token
+        last_idx = attention_mask[0].nonzero()[-1].item()
+
+        z = last_hidden[0, last_idx]   # shape: (d,)
+
+        return z.cpu()
 
 # ----------------- DataInfRepresentation -----------------
 class DataInfRepresentation(BaseRepresentation):
     def __init__(self, estimator, results_only=False):
-        super().__init__("DataInfRepresentation",
+        super().__init__("datainf",
                          estimator.train_dataset,
                          estimator.train_dataset_name,
                          estimator.train_dataset_split,
@@ -381,14 +375,18 @@ class DataInfRepresentation(BaseRepresentation):
 
         if os.path.exists(hvp_cache_path):
             print(f"Loading cached HVP from {hvp_cache_path}")
-            with open(hvp_cache_path, "rb") as f:
-                self._hvp_dict = pickle.load(f)
+            self._hvp_dict = torch.load(
+                local_path,
+                map_location="cpu",
+                weights_only=False
+                )
+            print(f"Got cached HVP from {hvp_cache_path}")
             return
 
         if self.results_only:
             raise RuntimeError(f"results_only=True but HVP cache not found at {hvp_cache_path}")
 
-        # Otherwise compute HVP as before (unchanged)...
+      
 
     def _embed_doc(self, idx: int) -> torch.Tensor:
         if self._hvp_dict is None and self.results_only:
@@ -451,15 +449,18 @@ class JaccardRepresentation(BaseRepresentation):
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
                          "-", results_only=results_only)
-        self.tokenized_docs = tokenized_docs
-        
+
+        self.token_sets = [set(doc) for doc in tokenized_docs]
 
     def _embed_doc(self, idx: int) -> torch.Tensor:
-        set_i = set(self.tokenized_docs[idx])
-        n = len(self.tokenized_docs)
-        vec = torch.zeros(n, dtype=torch.float32)
-        for j in range(n):
-            set_j = set(self.tokenized_docs[j])
-            union = set_i | set_j
-            vec[j] = 0.0 if len(union) == 0 else len(set_i & set_j) / len(union)
-        return vec.cpu()
+        set_i = self.token_sets[idx]
+
+        sims = []
+        len_i = len(set_i)
+
+        for set_j in self.token_sets:
+            inter = len(set_i & set_j)
+            union = len_i + len(set_j) - inter
+            sims.append(0.0 if union == 0 else inter / union)
+
+        return torch.tensor(sims, dtype=torch.float32)

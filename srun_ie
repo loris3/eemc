@@ -1,0 +1,11 @@
+srun --job-name="[OC] Interactive" \
+     --mem=36G \
+     --cpus-per-task=8 \
+     --gres=gpu:0 \
+     --time=1-7:59:00 \
+     --nodes=1 \
+     --account=datamining \
+     --partition=p_datamining \
+     --container-image="ghcr.io#loris3/eemc:latest" \
+     --no-container-mount-home \
+     --pty bash 

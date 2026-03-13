@@ -28,16 +28,19 @@ from functools import partial
 
 from concurrent.futures import ProcessPoolExecutor
 class LESSEstimator(BaseEstimator):
-    def __init__(self, model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device="cuda", normalize=True, proj_dim=2**13, eval_mode=False):
+    def __init__(self, model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device="cuda", mode="normalized", proj_dim=2**13, eval_mode=False):
         super().__init__(model_path, train_dataset, train_dataset_name, train_dataset_split, test_dataset, test_dataset_name, test_dataset_split, device,
                          param_list=[
                              proj_dim,
-                             normalize], 
+                             mode], 
                          param_list_gradients=[
-                             proj_dim],
+                             proj_dim,
+                             "adam" if mode == "adam" else "raw"
+                             ],
                          eval_mode=eval_mode
                          )
-        self.normalize = normalize
+        self.mode = mode
+        self.normalize = False if self.mode == "unnormalized" else True
         self.proj_dim = proj_dim
 
 
@@ -48,19 +51,18 @@ class LESSEstimator(BaseEstimator):
         if hasattr(self, 'model'):
             del self.model
     def get_config_string(self):
-        return f"{self.__class__.__name__}: normalize={str(self.normalize)}"
+        return f"{self.__class__.__name__}: {self.mode}"
   
     def run(self):
         grads_test = None
         if not self.all_gradients_exist(self.train_dataset, self.train_dataset_name, self.train_dataset_split, self.gradient_cache_dir):
-            self.get_gradients(self.train_dataset, gradient_type="adam" if self.adam_optimizer_state is not None else "sgd", dataset_name=self.train_dataset_name, dataset_split_name=self.train_dataset_split, gradient_cache_dir=self.gradient_cache_dir, gradient_out_dir=self.gradient_out_dir)
+            self.get_gradients(self.train_dataset, dataset_name=self.train_dataset_name, dataset_split_name=self.train_dataset_split, gradient_cache_dir=self.gradient_cache_dir, gradient_out_dir=self.gradient_out_dir)
         else:
             print("train grads cached")
-            # grads_train = self.load_gradients(self.train_dataset, self.train_dataset_name, self.train_dataset_split)
         try:
             grads_test = self.load_gradients(self.test_dataset, self.test_dataset_name, self.test_dataset_split)
         except (FileNotFoundError, RuntimeError):
-            self.get_gradients(self.test_dataset,  gradient_type="sgd", dataset_name=self.test_dataset_name, dataset_split_name=self.test_dataset_split,gradient_cache_dir=self.gradient_cache_dir, gradient_out_dir=self.gradient_out_dir)
+            self.get_gradients(self.test_dataset, dataset_name=self.test_dataset_name, dataset_split_name=self.test_dataset_split,gradient_cache_dir=self.gradient_cache_dir, gradient_out_dir=self.gradient_out_dir)
             grads_test = self.load_gradients(self.test_dataset, self.test_dataset_name, self.test_dataset_split)
      
 
@@ -112,12 +114,11 @@ class LESSEstimator(BaseEstimator):
    
     
 
-    def get_gradients(self, dataset, gradient_type, dataset_name, dataset_split_name, gradient_cache_dir, gradient_out_dir):
+    def get_gradients(self, dataset, dataset_name, dataset_split_name, gradient_cache_dir, gradient_out_dir):
   
         dataset = tokenize_dataset(
             dataset,
             tokenizer=self.tokenizer,
-            max_length=4096,
             chat_template_path="./chat_template.jinja", 
             assistant_only_loss=True,
             text_column="messages",
@@ -137,8 +138,8 @@ class LESSEstimator(BaseEstimator):
         
         fn = partial(
             batch_map,
+            self.mode,
             model=self.model,
-            gradient_type=gradient_type,
             tokenizer=self.tokenizer,
             adam_optimizer_state=self.adam_optimizer_state,
             proj_dim=self.proj_dim,
@@ -200,7 +201,7 @@ class LESSEstimator(BaseEstimator):
        
 
 
-def batch_map(batch, rank, model, gradient_type, tokenizer,  proj_dim, adam_optimizer_state, gradient_cache_dir, gradient_out_dir, dataset_name, dataset_split_name):
+def batch_map(mode, batch, rank, model, tokenizer,  proj_dim, adam_optimizer_state, gradient_cache_dir, gradient_out_dir, dataset_name, dataset_split_name):
     
     try:
         if rank is None:
@@ -211,7 +212,7 @@ def batch_map(batch, rank, model, gradient_type, tokenizer,  proj_dim, adam_opti
         batch = Dataset.from_dict(batch)
         print("bs", rank)
         print(rank, batch[0]["indices"], "to", batch[-1]["indices"])
-        _get_gradients_batch(get_dataloader(tokenizer, batch), rank, model,  gradient_type, adam_optimizer_state, proj_dim,
+        _get_gradients_batch(mode, get_dataloader(tokenizer, batch), rank, model,  adam_optimizer_state, proj_dim,
                                  gradient_cache_dir, gradient_out_dir, dataset_name, dataset_split_name)
 
 
@@ -229,7 +230,7 @@ def get_dataloader(tokenizer, dataset, batch_size=1):
                             collate_fn=data_collator)
     print("There are {} examples in the dataset".format(len(dataset)))
     return dataloader
-def _get_gradients_batch(dataloader, rank, model, gradient_type, adam_optimizer_state, proj_dim,
+def _get_gradients_batch(mode, dataloader, rank, model, adam_optimizer_state, proj_dim,
                          gradient_cache_dir=None, gradient_out_dir=None, dataset_name=None, dataset_split_name=None):
         from .estimator import store_gradient, gradient_exists
         print("_get_gradients_batch", rank)
@@ -239,14 +240,12 @@ def _get_gradients_batch(dataloader, rank, model, gradient_type, adam_optimizer_
 
         grads = []
 
-
+        avg_dict, avg_sq_dict = None, None
         torch.random.manual_seed(0)
 
-        if gradient_type == "adam":
+        if mode == "adam":
             assert adam_optimizer_state is not None
-            m, v = prepare_optimizer_state(model, device, adam_optimizer_state)
-        else:
-            m, v = None, None
+            avg_dict, avg_sq_dict = prepare_optimizer_state(model, device, adam_optimizer_state)
 
 
         dummy_input = torch.tensor([[0,0,0,0]]).to(device)
@@ -313,16 +312,31 @@ def _get_gradients_batch(dataloader, rank, model, gradient_type, adam_optimizer_
                 outputs = model(**row)
                 loss = outputs.loss # only on the assistant parts (everything else is masked as set to -100)
                 loss.backward()
+                
                 grads = []
                 for k, v in model.named_parameters():
                     grad = None
+                    avg, avq_sq = None, None
                     if k not in param_projectors:
                         continue
                     if 'lora_A' in k:
                         grad = v.grad
-                    
+                        if mode == "adam":
+                            avg = avg_dict[k]
+                            avg_sq = avg_sq_dict[k]
+
                     elif 'lora_B' in k:
                         grad = v.grad.T
+                        if mode == "adam":
+                            avg = avg_dict[k].T
+                            avg_sq = avg_sq_dict[k].T
+                    if mode == "adam":
+                        beta1 = 0.9
+                        beta2 = 0.98
+                        eps = 0.000001
+                        grad = (beta1 * avg + (1 - beta1) * grad) / torch.sqrt(
+                            beta2 * avg_sq + (1 - beta2) * grad ** 2 + eps
+                        )
                     with torch.no_grad():
                         proj_grad = param_projectors[k].project(grad.contiguous(), model_id=0).detach().cpu()
                         grads.append(proj_grad)
@@ -338,58 +352,13 @@ def _get_gradients_batch(dataloader, rank, model, gradient_type, adam_optimizer_
 
 def prepare_optimizer_state(model, device, adam_optimizer_state):
     names = [n for n, p in model.named_parameters() if p.requires_grad]
+    assert len(names) == len(adam_optimizer_state)
     
-    assert len(names) == len(adam_optimizer_state) # assume ordered state_dict: https://github.com/princeton-nlp/LESS/issues/4#issuecomment-2955009098
+    avg_dict = {}
+    avg_sq_dict = {}
     
-    avg = torch.cat([adam_optimizer_state[i]["exp_avg"].view(-1) for i,_ in enumerate(names)])
-    avg_sq = torch.cat([adam_optimizer_state[i]["exp_avg_sq"].view(-1)
-                        for i,_ in enumerate(names)])
-    avg = avg.to(device)
-    avg_sq = avg_sq.to(device)
-    return avg, avg_sq
-
-def get_number_of_params(model):
-    """ Make sure that only lora parameters require gradients in peft models. """
-    if isinstance(model, PeftModel):
-        names = [n for n, p in model.named_parameters(
-        ) if p.requires_grad and "lora" not in n]
-        assert len(names) == 0
-    num_params = sum([p.numel()
-                    for p in model.parameters() if p.requires_grad])
-    print(f"Total number of parameters that require gradients: {num_params}")
-    return num_params
-
-def prepare_batch(batch, device):
-    """ Move the batch to the device. """
-
-    for key in batch:
-        if batch[key] is not None:
-            batch[key] = batch[key].to(device)
-def obtain_gradients(batch, device,model):
-        """ obtain gradients. """
-        batch['labels'] = batch['input_ids']
-        batch.to(device)
-        loss = model(**batch).loss
-        loss.backward()
-        vectorized_grads = torch.cat(
-            [p.grad.view(-1) for p in model.parameters() if p.grad is not None])
-        return vectorized_grads
-
-def obtain_gradients_with_adam(batch, avg, avg_sq, device, model):
-    """ obtain gradients with adam optimizer states. """
-    beta1 = 0.9
-    beta2 = 0.999
-    eps = 1e-08
-    batch['labels'] = batch['input_ids']
-    batch.to(device)
-    loss = model(**batch).loss
-    loss.backward()
-
-    vectorized_grads = torch.cat(
-        [p.grad.view(-1) for n, p in model.named_parameters() if p.grad is not None])
-
-    updated_avg = beta1 * avg + (1 - beta1) * vectorized_grads
-    updated_avg_sq = beta2 * avg_sq + (1 - beta2) * vectorized_grads ** 2
-    vectorized_grads = updated_avg / torch.sqrt(updated_avg_sq + eps)
-
-    return vectorized_grads
+    for i, n in enumerate(names):
+        avg_dict[n] = adam_optimizer_state[i]["exp_avg"].to(device)
+        avg_sq_dict[n] = adam_optimizer_state[i]["exp_avg_sq"].to(device)
+        
+    return avg_dict, avg_sq_dict
