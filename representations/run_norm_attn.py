@@ -25,7 +25,6 @@ def main(args=None):
     tokenized_dataset = tokenize_dataset(
         test_dataset,
         tokenizer,
-        max_length=512,
         num_proc=10,
         re_index=False,
     ) if not args.results_only else None
@@ -40,8 +39,7 @@ def main(args=None):
                  args.test_dataset_name, 
                  args.test_dataset_split, 
                  args.model,
-                 results_only=args.results_only,
-        max_seq_len=512,  
+                 results_only=args.results_only, 
         )
     similarity_matrix = rep.compute()
     del train_dataset, test_dataset, tokenizer, model

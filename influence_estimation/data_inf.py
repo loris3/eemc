@@ -54,7 +54,6 @@ class DataInfEstimator(BaseEstimator):
         self.tokenized_train_dataset = tokenize_dataset(
             self.train_dataset, 
             tokenizer=self.tokenizer,
-            max_length=4096,
             chat_template_path="./chat_template.jinja", 
             assistant_only_loss=True,
             text_column="messages",
@@ -73,7 +72,6 @@ class DataInfEstimator(BaseEstimator):
             self.tokenized_test_dataset = tokenize_dataset(
                 self.test_dataset, 
                 tokenizer=self.tokenizer,
-                max_length=4096,
                 chat_template_path="./chat_template.jinja", 
                 assistant_only_loss=True,
                 text_column="messages",

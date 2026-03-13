@@ -27,7 +27,6 @@ def main(args=None):
     tokenized_dataset = tokenize_dataset(
         test_dataset,
         tokenizer,
-        max_length=512,
         num_proc=10,
         re_index=False,
     ) if not args.results_only else None

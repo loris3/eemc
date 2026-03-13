@@ -7,6 +7,8 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--train_dataset_split", required=True)
     parser.add_argument("--test_dataset_name", required=True)
     parser.add_argument("--test_dataset_split", required=True)
+    parser.add_argument("--embd_model", required=False)
+    parser.add_argument("--mode", required=False)
     parser.add_argument("--results_only", action="store_true")
     return parser
 

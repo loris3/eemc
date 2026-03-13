@@ -15,7 +15,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
 
-def load_lora_model(repo_id: str):
+def load_lora_model(repo_id):
     """
     Loads base model, LoRA adapter, tokenizer, and chat template.
     Returns: model, tokenizer
@@ -50,13 +50,15 @@ def load_lora_model(repo_id: str):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Base model
+    model = None
+   
     model = AutoModelForCausalLM.from_pretrained(base_model_name_or_path, output_attentions=True,
     output_hidden_states=True)
     model.resize_token_embeddings(len(tokenizer))
 
     # Load LoRA adapter
     model = PeftModel.from_pretrained(model, repo_id, is_trainable=False)
+    tokenizer.model_max_length = model.config.max_position_embeddings
 
     return model, tokenizer
 

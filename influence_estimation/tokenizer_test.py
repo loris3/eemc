@@ -16,7 +16,6 @@ def main():
     tokenized_dataset = tokenize_dataset(
         dataset,
         tokenizer=tokenizer,
-        max_length=512,
         chat_template_path="./chat_template.jinja",  
         assistant_only_loss=True,
         text_column="messages",  
