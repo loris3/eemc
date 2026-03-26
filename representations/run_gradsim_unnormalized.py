@@ -1,10 +1,15 @@
-import sys
-from .run_gradsim import main
+from .run_gradsim import main as m
 
-def wrapper():
-    args = sys.argv[1:]  # take all command line arguments
-    args.extend(["--mode", "unnormalized"])
-    return main(args)
+def main(args):
+    args = list(args)
+    if "--mode" in args:
+        index = args.index("--mode")
+        args[index + 1] = "unnormalized"
+    else:
+        args += ["--mode", "unnormalized"]
+
+    return m(args)
 
 if __name__ == "__main__":
-    wrapper()
+    import sys
+    main(sys.argv[1:])

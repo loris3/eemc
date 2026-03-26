@@ -1,11 +1,16 @@
-import sys
-from .run_embd import main
+from .run_embd import main as m
 
-def wrapper():
-    embd_model = "tencent/KaLM-Embedding-Gemma3-12B-2511"
-    args = sys.argv[1:]  # take all command line arguments
-    args.extend(["--embd_model", embd_model])
-    return main(args)
+def main(args):
+    args = list(args)
+
+    if "--embd_model" in args:
+        index = args.index("--embd_model")
+        args[index + 1] = "tencent/KaLM-Embedding-Gemma3-12B-2511"
+    else:
+        args += ["--embd_model", "tencent/KaLM-Embedding-Gemma3-12B-2511"]
+
+    return m(args)
 
 if __name__ == "__main__":
-    wrapper()
+    import sys
+    main(sys.argv[1:])

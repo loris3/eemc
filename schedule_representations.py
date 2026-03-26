@@ -7,62 +7,62 @@ experiments = [
     #     "name": "SFT",
     #     "model": "./models/Llama-3.2-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42",
     #     "train_dataset_name": "loris3/tulu-3-sft-olmo-2-mixture-0225-sample",
-    #     "train_dataset_split": "train",
+    #     "train_dataset_split": "test",
     #     "test_dataset_name": "loris3/tulu-3-sft-olmo-2-mixture-0225-sample",
     #     "test_dataset_split": "test",
     # },
     {
         "name": "ftrace",
         "model": "./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42",
-        "train_dataset_name": "loris3/ftrace_date-lm_conversational",
-        "train_dataset_split": "train",
-        "test_dataset_name": "loris3/ftrace_date-lm_conversational",
-        "test_dataset_split": "train",
+        "train_dataset_name": "loris3/ftrace_date-lm_conversational-sample",
+        "train_dataset_split": "test",
+        "test_dataset_name": "loris3/ftrace_date-lm_conversational-sample",
+        "test_dataset_split": "test",
     },
-    #     {
-    #     "name": "math",
-    #     "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-math_lr1e-05_seed42",
-    #     "train_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
-    #     "train_dataset_split": "train",
-    #     "test_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
-    #     "test_dataset_split": "test",
-    # },
-    # {
-    #     "name": "code",
-    #     "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42",
-    #     "train_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
-    #     "train_dataset_split": "train",
-    #     "test_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
-    #     "test_dataset_split": "test",
-    # },
-    #         {
-    #     "name": "squad_v2",
-    #     "model": "./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42",
-    #     "train_dataset_name": "loris3/squad_v2_conversational-sample",
-    #     "train_dataset_split": "train",
-    #     "test_dataset_name": "loris3/squad_v2_conversational-sample",
-    #     "test_dataset_split": "test",
-    # },
+        {
+        "name": "math",
+        "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-math_lr1e-05_seed42",
+        "train_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
+        "train_dataset_split": "test",
+        "test_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
+        "test_dataset_split": "test",
+    },
+    {
+        "name": "code",
+        "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42",
+        "train_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
+        "train_dataset_split": "test",
+        "test_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
+        "test_dataset_split": "test",
+    },
+            {
+        "name": "squad_v2",
+        "model": "./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42",
+        "train_dataset_name": "loris3/squad_v2_conversational-sample",
+        "train_dataset_split": "test",
+        "test_dataset_name": "loris3/squad_v2_conversational-sample",
+        "test_dataset_split": "test",
+    },
 
 ]
 
 # Find all run_*.py scripts
 scripts_no_gpu = [
-"representations/run_gradsim_normalized.py",
+# "representations/run_gradsim_normalized.py",
 "representations/run_gradsim_unnormalized.py",
 "representations/run_gradsim_adam.py",
 "representations/run_datainf.py",
 "representations/run_bm25.py",
-"representations/run_jaccard.py",
-"representations/run_tfidf.py"
+# "representations/run_jaccard.py",
+# "representations/run_tfidf.py"
 ]
 
 scripts_gpu = [
     "representations/run_embd_Qwen3-Embedding-8B.py",
     "representations/run_embd_KaLM-Embedding-Gemma3-12B-2511.py",
-    "representations/run_embd_llama-embed-nemotron-8b.py",
+    # # "representations/run_embd_llama-embed-nemotron-8b.py",
     "representations/run_repsim.py",
-    "representations/full_model.py",
+    "representations/run_full_model.py",
     "representations/run_norm_attn.py",
 ]
 scripts = scripts_no_gpu + scripts_gpu
@@ -92,5 +92,6 @@ def main():
             cmd = ["./schedule.sh", sbatch_file, module_name, "--job-name", job_name] + args
             print("Scheduling:", " ".join(cmd))
             subprocess.run(cmd)
+            # exit()
 if __name__ == "__main__":
     main()

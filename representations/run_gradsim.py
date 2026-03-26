@@ -1,11 +1,43 @@
 import argparse
 
 from influence_estimation.less_inf import LESSEstimator
-from representations.main import GradientRepresentation
 from representations.common_args import add_common_args
+import torch
+import os
+from representations.main import BaseRepresentation
+from representations.common_args import add_common_args
+from influence_estimation.util import tokenize_dataset
 
+from influence_estimation.estimator import BaseEstimator
+import pandas as pd
 from representations.load_data import (   
     load_data_and_estimators)
+class GradientRepresentation(BaseRepresentation):
+    def __init__(self, estimator, name="GradientRepresentation", results_only=False):
+        super().__init__(name,
+                         estimator.train_dataset,
+                         estimator.train_dataset_name,
+                         estimator.train_dataset_split,
+                         estimator.test_dataset,
+                         estimator.test_dataset_name,
+                         estimator.test_dataset_split,
+                         estimator.model_path,
+                         results_only=results_only)
+        self.estimator = estimator
+        self.estimator.embeddings = self.compute()
+        
+    def _embed_doc(self, idx: int) -> torch.Tensor:
+        if self.results_only:
+            raise RuntimeError("results_only=True but no cache found")
+        gradient = self.estimator.get_gradient(
+            self.estimator.test_dataset_name,
+            self.test_dataset_split,
+            [idx]
+        )[0].float()
+       
+        return gradient.cpu()
+
+
 
 def main(args=None):
     parser = argparse.ArgumentParser()
@@ -16,6 +48,7 @@ def main(args=None):
                                                            args.test_dataset_name, 
                                                            args.train_dataset_split, 
                                                            args.test_dataset_split)
+    print("MODE", args.mode)
     estimator_less = LESSEstimator(
         args.model,
         train_dataset,
@@ -31,9 +64,9 @@ def main(args=None):
 
     rep = GradientRepresentation(estimator_less, name=f"gradsim_{args.mode}", results_only=args.results_only)
 
-    similarity_matrix = rep.compute()
+
     del train_dataset, test_dataset
-    return similarity_matrix
+    return rep.estimator.embeddings, rep.get_influence_estimate()
 if __name__ == "__main__":
     main()
     

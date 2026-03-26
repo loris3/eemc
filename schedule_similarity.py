@@ -1,29 +1,43 @@
-import glob
 import subprocess
 import itertools
-
 from schedule_representations import experiments, scripts_gpu, scripts_no_gpu
 
 scripts = scripts_no_gpu + scripts_gpu
 
-# scripts = [s for s in scripts if ("data" not in s) or ("less" in s)]
+def main():
+    for exp in experiments[0:1]:
+        for script_a, script_b in itertools.combinations(scripts, 2):
+            # Convert script paths to module-style names
+            module_a = script_a.replace(".py", "").replace("/", ".")
+            module_b = script_b.replace(".py", "").replace("/", ".")
 
-print(list(itertools.combinations(scripts, 2)))
+            # Build readable job name
+            label_a = script_a.split("/")[1].replace("run_", "").replace(".py", "")
+            label_b = script_b.split("/")[1].replace("run_", "").replace(".py", "")
+            job_name = f"[EEMC] Structural Similarity {label_a} x {label_b} for {exp['name']}"
 
-for exp in experiments:
-    for script_a, script_b in itertools.combinations(scripts, 2):
-        args = [
-            "--model", exp["model"],
-            "--train_dataset_name", exp["train_dataset_name"],
-            "--train_dataset_split", exp["train_dataset_split"],
-            "--test_dataset_name", exp["test_dataset_name"],
-            "--test_dataset_split", exp["test_dataset_split"],
-            "--top_k", "10 20 50 100 200 500", #"10 20",
-            "--sim_script_a", script_a,
-            "--sim_script_b", script_b,
-            "--experiment_name", exp["name"],
-        ]
-        cmd = ["./schedule.sh", "run_similarity_template.sbatch", "structural_similarity"] + args
-        print("\n", " ".join(cmd))
-        subprocess.run(cmd)
-        
+            # Combine arguments
+            args = [
+                "--model", exp["model"],
+                "--train_dataset_name", exp["train_dataset_name"],
+                "--train_dataset_split", exp["train_dataset_split"],
+                "--test_dataset_name", exp["test_dataset_name"],
+                "--test_dataset_split", exp["test_dataset_split"],
+                "--sim_script_a", module_a,
+                "--sim_script_b", module_b,
+                "--experiment_name", exp["name"]
+            ]
+            
+
+            for normalize in [True, False]:
+                for k in [10, 50, 100]: #25, 
+                    cmd = ["./schedule.sh", "run_similarity_template.sbatch", "structural_similarity", "--job-name", job_name] + args\
+                            + (["--normalize"] if normalize else [])\
+                            + ["--k", str(k)]
+                    print("Scheduling:", " ".join(cmd))
+                    subprocess.run(cmd) 
+                    # exit()
+                    
+
+if __name__ == "__main__":
+    main()

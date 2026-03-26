@@ -126,40 +126,100 @@ class AlignmentMetrics:
         return AlignmentMetrics.cka(*args, **kwargs)
     
     
-    @staticmethod
-    def svcca(feats_A, feats_B, cca_dim=10):
+    # @staticmethod
+    # def svcca(feats_A, feats_B, cca_dim=10):
 
-        # Center and scale the activations
+    #     # Center and scale the activations
+    #     def preprocess_activations(act):
+    #         act = act - torch.mean(act, axis=0)
+    #         act = act / (torch.std(act, axis=0) + 1e-8)
+    #         return act
+
+    #     feats_A = preprocess_activations(feats_A)
+    #     feats_B = preprocess_activations(feats_B)
+
+    #     # Compute SVD
+    #     U1, _, _ = torch.svd_lowrank(feats_A, q=cca_dim)
+    #     U2, _, _ = torch.svd_lowrank(feats_B, q=cca_dim)
+        
+    #     U1 = U1.cpu().detach().numpy()
+    #     U2 = U2.cpu().detach().numpy()
+
+    #     # Compute CCA
+    #     cca = CCA(n_components=cca_dim)
+    #     cca.fit(U1, U2)
+    #     U1_c, U2_c = cca.transform(U1, U2)
+
+    #     # sometimes it goes to nan, this is just to avoid that
+    #     U1_c += 1e-10 * np.random.randn(*U1_c.shape)
+    #     U2_c += 1e-10 * np.random.randn(*U2_c.shape)
+
+    #     # Compute SVCCA similarity
+    #     svcca_similarity = np.mean(
+    #         [np.corrcoef(U1_c[:, i], U2_c[:, i])[0, 1] for i in range(cca_dim)]
+    #     )
+    #     return svcca_similarity
+    
+
+    @staticmethod
+    def svcca(feats_A, feats_B):
+        print("feats_A", feats_A.shape)
+        print("feats_B", feats_B.shape)
         def preprocess_activations(act):
-            act = act - torch.mean(act, axis=0)
-            act = act / (torch.std(act, axis=0) + 1e-8)
+            act = act - torch.mean(act, dim=0)
+            act = act / (torch.std(act, dim=0) + 1e-8)
             return act
 
         feats_A = preprocess_activations(feats_A)
         feats_B = preprocess_activations(feats_B)
+        def get_top_singular_vectors(feats, threshold=0.99):
+            if feats.shape[0] < feats.shape[1]:
+                C = feats @ feats.T              
+                U_small, S_squared, _ = torch.linalg.svd(C)
+                S = torch.sqrt(S_squared)
 
-        # Compute SVD
-        U1, _, _ = torch.svd_lowrank(feats_A, q=cca_dim)
-        U2, _, _ = torch.svd_lowrank(feats_B, q=cca_dim)
-        
-        U1 = U1.cpu().detach().numpy()
-        U2 = U2.cpu().detach().numpy()
+                sv_sum = torch.sum(S)
+                cum_sum = torch.cumsum(S, dim=0)
+                mask = cum_sum >= threshold * sv_sum
+                k = torch.where(mask)[0][0].item() + 1
 
-        # Compute CCA
-        cca = CCA(n_components=cca_dim)
-        cca.fit(U1, U2)
-        U1_c, U2_c = cca.transform(U1, U2)
+                print("k", k, flush=True)
+                return U_small[:, :k].cpu().detach().numpy()
+            else:
+                U, S, Vh = torch.linalg.svd(feats, full_matrices=False)
 
-        # sometimes it goes to nan, this is just to avoid that
+                # Calculate cumulative variance explained by these singular values
+                sv_sum = torch.sum(S)
+                cum_sum = torch.cumsum(S, dim=0)
+                
+                # Find index for 99% variance
+                mask = cum_sum >= threshold * sv_sum
+                k = torch.where(mask)[0][0].item() + 1
+
+   
+                print("k", k, flush=True)
+                return U[:, :k].cpu().detach().numpy()
+
+        # Get reduced subspaces based on 99% variance
+        U1_reduced = get_top_singular_vectors(feats_A)
+        U2_reduced = get_top_singular_vectors(feats_B)
+        exit()
+        # CCA requires the number of components to be <= min(features_A, features_B)
+        dim = min(U1_reduced.shape[1], U2_reduced.shape[1])
+
+        # 4. Apply Canonical Correlation Analysis (CCA)
+        cca = CCA(n_components=dim)
+        U1_c, U2_c = cca.fit_transform(U1_reduced, U2_reduced)
+
+        # Robustness jitter to avoid NaNs in correlation
         U1_c += 1e-10 * np.random.randn(*U1_c.shape)
         U2_c += 1e-10 * np.random.randn(*U2_c.shape)
 
-        # Compute SVCCA similarity
-        svcca_similarity = np.mean(
-            [np.corrcoef(U1_c[:, i], U2_c[:, i])[0, 1] for i in range(cca_dim)]
-        )
+        # 5. Compute SVCCA similarity (mean correlation across all canonical dims)
+        correlations = [np.corrcoef(U1_c[:, i], U2_c[:, i])[0, 1] for i in range(dim)]
+        svcca_similarity = np.mean(correlations)
+        
         return svcca_similarity
-    
     
     @staticmethod
     def edit_distance_knn(feats_A, feats_B, topk):

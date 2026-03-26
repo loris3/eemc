@@ -24,6 +24,7 @@ tmp/*
 *.otf
 *.ttf
 models_test/*
+t
 trainer_output/*
 tmp_dataset_repo/*
 finetuning_eval/*
@@ -50,3 +51,4 @@ figures/*
 NotoColorEmoji-Regular.ttf
 *_executed.ipynb
 srun
+survey

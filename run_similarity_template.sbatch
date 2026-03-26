@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Similarity"
-#SBATCH --mem=256G
+#SBATCH --mem=200G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=1-16:00:00
+#SBATCH --time=0-6:00:00
 #SBATCH --nodes=1
 #SBATCH --partition=p_low
-
+#SBATCH --account=datamining
 python3 --version
 df -h
 
