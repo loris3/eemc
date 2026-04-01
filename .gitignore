@@ -25,6 +25,7 @@ tmp/*
 *.ttf
 models_test/*
 t
+models_old/*
 trainer_output/*
 tmp_dataset_repo/*
 finetuning_eval/*
@@ -52,3 +53,4 @@ NotoColorEmoji-Regular.ttf
 *_executed.ipynb
 srun
 survey
+models_old/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42/checkpoint-630/optimizer.pt

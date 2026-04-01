@@ -16,19 +16,19 @@ parameters:
     value: train
 
   learning_rate:
-    values: [1e-5]
+    values: [1e-4]
   seed:
     values: [42]
   lora_r:
     value: 8
   num_train_epochs:
-    value: 5
+    value: 3
   per_device_train_batch_size:
-    value: 4
+    value: 8
   gradient_accumulation_steps:
-    value: 2
+    value: 4
   logging_steps:
-    value: 10
+    value: 50
   save_total_limit:
     value: 2
   bf16:

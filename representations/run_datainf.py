@@ -81,7 +81,7 @@ def main(args=None):
         eval_mode=True # must be True so that cache/gradients not /tmp/cache... is used      
     )
 
-    rep = DataInfRepresentation(estimator_datainf, results_only=args.results_only)
+    rep = DataInfRepresentation(estimator_datainf, results_only=args.results_only, mode=args.mode)
 
 
     del test_dataset

@@ -18,6 +18,16 @@ pip show datasets
 
 python3 estimate_influence.py \
   --base_model "allenai/OLMo-2-0425-1B" \
+  --model_dir "./models/OLMo-2-0425-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42" \
+  --train_dataset loris3/tulu-3-sft-olmo-2-mixture-0225-sample \
+  --test_dataset loris3/tulu-3-sft-olmo-2-mixture-0225-sample \
+  --train_dataset_split=test \
+  --test_dataset_split=test
+rm -rf /tmp/cache/gradients
+
+
+python3 estimate_influence.py \
+  --base_model "allenai/OLMo-2-0425-1B" \
   --model_dir "./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42" \
   --train_dataset loris3/ftrace_date-lm_conversational-sample \
   --test_dataset loris3/ftrace_date-lm_conversational-sample \

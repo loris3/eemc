@@ -6,7 +6,7 @@
 #SBATCH --time=1-16:00:00
 #SBATCH --nodes=1
 #SBATCH --account=datamining
-#SBATCH --partition=p_low
+#SBATCH --partition=p_datamining
 
 python3 --version
 df -h

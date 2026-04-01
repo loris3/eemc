@@ -32,7 +32,7 @@ def load_lora_model(repo_id):
 
     base_model_name_or_path = adapter_config["base_model_name_or_path"]
 
-    # Load chat template
+    # Load chat template TODO remove after retrain
     try:
         # Try downloading from Hugging Face Hub
         chat_template = open(
@@ -46,6 +46,7 @@ def load_lora_model(repo_id):
     # Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
     tokenizer.chat_template = chat_template
+    
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token

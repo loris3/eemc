@@ -42,12 +42,6 @@ class CustomTrainingArguments(TrainingArguments):
     save_steps: int = field(default=500)   
 from datasets import load_from_disk
 
-def load_tokenizer(tokenizer_path, chat_template_path="./chat_template.jinja"):
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        tokenizer.chat_template = open(chat_template_path).read()
-        if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-        return tokenizer    
 
 
 
@@ -116,9 +110,20 @@ if __name__ == "__main__":
         report_to=training_args.report_to,
         seed=training_args.seed,
         packing=False,
+        max_length=4096,
         gradient_checkpointing=False,
         ddp_find_unused_parameters=False,
     )
+    tokenizer = AutoTokenizer.from_pretrained(model_args.base_model)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.model_max_length =  sft_config.max_length
+    
+    with open(os.path.join("./", "chat_template.jinja"), "r") as f:
+        tokenizer.chat_template = f.read()
+    tokenizer.save_pretrained(training_args.output_dir)
+
+
     
     dataset = load_dataset(data_args.train_dataset, split="train")
     if "prompt" in dataset.column_names: # use "messages"
@@ -174,8 +179,6 @@ if __name__ == "__main__":
     torch.save(trainer.optimizer.state_dict(), os.path.join(training_args.output_dir, "optimizer.pt"))
     wandb.finish()
     
-
-    chat_template_dst = os.path.join(training_args.output_dir, "chat_template.jinja")
-    shutil.copy("./chat_template.jinja", chat_template_dst)
+    
 
 
