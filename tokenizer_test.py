@@ -1,13 +1,13 @@
 import os
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from util import tokenize_dataset  
+from influence_estimation.util import tokenize_dataset  
 
 def main():
   
-    tokenizer_name = "allenai/OLMo-2-0425-1B-SFT"
+    tokenizer_name = "./models/OLMo-2-0425-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42"
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-
+    print("tokenizer max len", tokenizer.model_max_length)
     dataset_name = "loris3/tulu3-test-small"
     dataset = load_dataset(dataset_name, split="train")
 

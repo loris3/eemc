@@ -14,10 +14,13 @@ models/*
 model_checkpoints/*
 runnnn.sh
 cache/*
+cache_old
+results_old
 results/*
 dataset/*
 *.err
 .env
+finetuning_eval_old
 t.ipynb
 tmp/*
 *.ttc

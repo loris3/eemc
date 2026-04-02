@@ -8,11 +8,15 @@ cd "$CONTAINER_WORKDIR/olmes" || { echo "Clone olmes first!"; exit 1; }
 
 tasks=(
     olmo3:base_easy:math_bpb
-    # olmo3:base_easy:code_bpb
+    olmo3:base_easy:code_bpb
+    core_9mcqa::olmes
+    mmlu:mc::olmes
+    olmo_2_generative::olmes
+    olmo_2_heldout::olmes
 )
 
 models=(
-    "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-math_lr1e-05_seed42"
+    "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42"
 #     "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42"
 )
 
@@ -195,10 +199,10 @@ model_name=\$(basename "\$model")
 echo "Evaluating model=\$model out_dir=\$out_dir model_name=\$model_name on custom tasks "
 
 python3 qa_eval.py     --model_path "\$model"     --dataset loris3/ftrace_date-lm_conversational --split=train    
-python3 qa_eval.py     --model_path "\$model""     --dataset loris3/squad_v2_conversational --split=validation    
+python3 qa_eval.py     --model_path "\$model"     --dataset loris3/squad_v2_conversational --split=validation    
 python3 qa_eval.py     --model_path "\$model"     --dataset allenai/tulu-3-hard-coded-10x --split=train    
 EOL
 
 
-sbatch  "$eval_script"
+sbatch --dependency=afterany:$merge_jid "$eval_script"
 

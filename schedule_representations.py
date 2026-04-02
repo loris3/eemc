@@ -1,11 +1,18 @@
 import glob
 import subprocess
 
-# List of paired models and datasets
-experiments = [
+base_models = [
+    "Olmo-3-1025-7B",
+    "OLMo-2-0425-1B",
+    "Llama-3.2-1B",
+    "Qwen2.5-0.5B"
+]
+
+
+experiments_ = [
     # {
     #     "name": "SFT",
-    #     "model": "./models/Llama-3.2-1B_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42",
+    #     "model": "_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42",
     #     "train_dataset_name": "loris3/tulu-3-sft-olmo-2-mixture-0225-sample",
     #     "train_dataset_split": "test",
     #     "test_dataset_name": "loris3/tulu-3-sft-olmo-2-mixture-0225-sample",
@@ -13,38 +20,47 @@ experiments = [
     # },
     {
         "name": "ftrace",
-        "model": "./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr1e-05_seed42",
+        "model": "_ftrace_date-lm_conversational_lr0.0001_seed42",
         "train_dataset_name": "loris3/ftrace_date-lm_conversational-sample",
         "train_dataset_split": "test",
         "test_dataset_name": "loris3/ftrace_date-lm_conversational-sample",
         "test_dataset_split": "test",
     },
-        {
-        "name": "math",
-        "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-math_lr1e-05_seed42",
-        "train_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
-        "train_dataset_split": "test",
-        "test_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
-        "test_dataset_split": "test",
-    },
-    {
-        "name": "code",
-        "model": "./models/OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42",
-        "train_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
-        "train_dataset_split": "test",
-        "test_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
-        "test_dataset_split": "test",
-    },
-            {
-        "name": "squad_v2",
-        "model": "./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42",
-        "train_dataset_name": "loris3/squad_v2_conversational-sample",
-        "train_dataset_split": "test",
-        "test_dataset_name": "loris3/squad_v2_conversational-sample",
-        "test_dataset_split": "test",
-    },
+    #     {
+    #     "name": "math",
+    #     "model": "_tulu-3-sft-personas-math_lr1e-05_seed42",
+    #     "train_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
+    #     "train_dataset_split": "test",
+    #     "test_dataset_name": "loris3/tulu-3-sft-personas-math-sample",
+    #     "test_dataset_split": "test",
+    # },
+    # {
+    #     "name": "code",
+    #     "model": "_tulu-3-sft-personas-code_lr1e-05_seed42",
+    #     "train_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
+    #     "train_dataset_split": "test",
+    #     "test_dataset_name": "loris3/tulu-3-sft-personas-code-sample",
+    #     "test_dataset_split": "test",
+    # },
+    #         {
+    #     "name": "squad_v2",
+    #     "model": "_squad_v2_conversational_lr1e-05_seed42",
+    #     "train_dataset_name": "loris3/squad_v2_conversational-sample",
+    #     "train_dataset_split": "test",
+    #     "test_dataset_name": "loris3/squad_v2_conversational-sample",
+    #     "test_dataset_split": "test",
+    # },
 
 ]
+experiments = []
+for base in base_models:
+    for exp in experiments_:
+        new_exp = exp.copy()
+        new_exp["model"] = f"./models/{base}{exp['model']}"
+        experiments.append(new_exp)
+        
+print(experiments)
+# exit()
 
 # Find all run_*.py scripts
 scripts_no_gpu = [
@@ -92,6 +108,6 @@ def main():
             cmd = ["./schedule.sh", sbatch_file, module_name, "--job-name", job_name] + args
             print("Scheduling:", " ".join(cmd))
             subprocess.run(cmd)
-            # exit()
+     
 if __name__ == "__main__":
     main()

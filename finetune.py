@@ -61,20 +61,9 @@ if __name__ == "__main__":
 
 
 
-    target_modules = None
-    if "OLMo" in model_args.base_model:
-        target_modules = ["c_attn", "q_proj", "v_proj"]
-    elif "pythia" in model_args.base_model:
-        target_modules = ["query_key_value", "dense"]
-    elif "llama" in model_args.base_model.lower(): 
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
-    elif "qwen" in model_args.base_model.lower():  
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
-    else:
-
-        raise NotImplementedError
-
+  
 
     lora_config = LoraConfig(
         r=model_args.lora_r,
@@ -125,7 +114,7 @@ if __name__ == "__main__":
 
 
     
-    dataset = load_dataset(data_args.train_dataset, split="train")
+    dataset = load_dataset(data_args.train_dataset, split="train[0:10000]")
     if "prompt" in dataset.column_names: # use "messages"
         dataset = dataset.remove_columns("prompt")
     trainer = SFTTrainer(
@@ -144,10 +133,8 @@ if __name__ == "__main__":
     
 
     checkpoint_dir = training_args.output_dir
-    if any(f.startswith("checkpoint") for f in os.listdir(checkpoint_dir)):
-        trainer.train(resume_from_checkpoint=True)
-    else:
-        trainer.train()
+
+    trainer.train()
         
     
 

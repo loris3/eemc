@@ -16,7 +16,7 @@ def merge_lora_to_hf(base_model: str, adapter_dir: str, output_dir: str):
     print(f"Saving merged model to: {output_dir}")
     model.save_pretrained(output_dir)
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
     tokenizer.save_pretrained(output_dir)
 
     print("done!")

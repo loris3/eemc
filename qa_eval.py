@@ -14,33 +14,15 @@ from evaluate import load
 
 
 
-# def load_model_and_tokenizer(path_or_repo):
-#     if os.path.exists(path_or_repo):
-#         print(f"Loading model from local folder: {path_or_repo}")
-#         adapter_path = os.path.join(path_or_repo, "adapter_config.json")
-#         chat_template_path = os.path.join(path_or_repo, "chat_template.jinja")
-#         if not os.path.exists(chat_template_path):
-#             chat_template_path = "chat_template.jinja"
-#     else:
-#         print(f"Downloading from Hugging Face repo: {path_or_repo}")
-#         adapter_path = hf_hub_download(repo_id=path_or_repo, filename="adapter_config.json")
-#         chat_template_path = hf_hub_download(repo_id=path_or_repo, filename="chat_template.jinja")
+def load_model_and_tokenizer(path_or_repo):
+    merged_path = path_or_repo+"-merged"
 
-#     adapter_config = json.load(open(adapter_path))
-#     base_model_name_or_path = adapter_config["base_model_name_or_path"]
-#     chat_template = open(chat_template_path).read()
+    tokenizer = AutoTokenizer.from_pretrained(merged_path)
+   
+    model = AutoModelForCausalLM.from_pretrained(merged_path)
+    model.eval()
 
-#     tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
-#     tokenizer.chat_template = chat_template
-#     if tokenizer.pad_token is None:
-#         tokenizer.pad_token = tokenizer.eos_token
-
-#     model = AutoModelForCausalLM.from_pretrained(base_model_name_or_path)
-#     model.resize_token_embeddings(len(tokenizer))
-#     model = PeftModel.from_pretrained(model, path_or_repo, is_trainable=False)
-#     model.eval()
-
-#     return model, tokenizer
+    return model, tokenizer
 
 
 def main():
