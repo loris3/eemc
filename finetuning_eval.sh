@@ -16,8 +16,9 @@ tasks=(
 )
 
 models=(
-    "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42"
-#     "allenai/OLMo-2-0425-1B OLMo-2-0425-1B_tulu-3-sft-personas-code_lr1e-05_seed42"
+    "Qwen/Qwen3-0.6B-Base Qwen3-0.6B-Base_ftrace_date-lm_conversational_lr0.0001_seed42"
+    # "allenai/OLMo-2-1124-13B OLMo-2-1124-13B_ftrace_date-lm_conversational_lr0.0001_seed42"
+    # "meta-llama/Llama-3.2-1B Llama-3.2-1B_ftrace_date-lm_conversational_lr0.0001_seed42"
 )
 
 baseline_models=(
@@ -45,7 +46,7 @@ cat > "$merge_script" <<EOL
 #SBATCH --container-image="$CONTAINER_IMAGE"
 #SBATCH --nodelist=$NODELIST
 #SBATCH --container-mount-home
-#SBATCH --mem=24GB
+#SBATCH --mem=128GB
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=p_datamining

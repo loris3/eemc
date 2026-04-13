@@ -8,6 +8,8 @@ trak
 *.wandb
 wandb
 checkpoints/*
+
+hf_cache
 less
 DataInf
 models/*
@@ -57,3 +59,5 @@ NotoColorEmoji-Regular.ttf
 srun
 survey
 models_old/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42/checkpoint-630/optimizer.pt
+test.sh
+test.py

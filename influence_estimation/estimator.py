@@ -90,12 +90,7 @@ class BaseEstimator(ABC):
         with open(os.path.join(self.model_path, "adapter_config.json")) as f:
             base_model_name_or_path = json.load(f)["base_model_name_or_path"]
             
-        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
-        if self.tokenizer.chat_template is None:
-            self.tokenizer.chat_template = "{{ bos_token }}{% for message in messages %}{% if message['role'] == 'system' %}{{ '<|system|>\n' + message['content'] + '\n' }}{% elif message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '\n' }}{% elif message['role'] == 'assistant' %}{% if not loop.last %}{{ '<|assistant|>\n'  + message['content'] + eos_token + '\n' }}{% else %}{{ '<|assistant|>\n'  + message['content'] + eos_token }}{% endif %}{% endif %}{% if loop.last and add_generation_prompt %}{{ '<|assistant|>\n' }}{% endif %}{% endfor %}" # https://huggingface.co/allenai/OLMo-2-1124-7B-SFT/blob/main/tokenizer_config.json 
-
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token # TODO
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
 
             
             

@@ -32,24 +32,10 @@ def load_lora_model(repo_id):
 
     base_model_name_or_path = adapter_config["base_model_name_or_path"]
 
-    # Load chat template TODO remove after retrain
-    try:
-        # Try downloading from Hugging Face Hub
-        chat_template = open(
-            hf_hub_download(repo_id=repo_id, filename="chat_template.jinja")
-        ).read()
-    except Exception as e:
-       
-        with open(os.path.join(repo_id,"./chat_template.jinja"), "r") as f:
-            chat_template = f.read()
-        
-    # Tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
-    tokenizer.chat_template = chat_template
-    
 
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    # Tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(repo_id)
+
 
     model = None
    
@@ -59,7 +45,7 @@ def load_lora_model(repo_id):
 
     # Load LoRA adapter
     model = PeftModel.from_pretrained(model, repo_id, is_trainable=False)
-    tokenizer.model_max_length = model.config.max_position_embeddings
+
 
     return model, tokenizer
 

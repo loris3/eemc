@@ -14,8 +14,8 @@ def tokenize_dataset(
     - for assistant_only_loss=True, masks labels so only assistant tokens count in loss
     - adds ordinal 'indices' if re_index=True
     """
-    tokenizer.model_max_length = 4096 # TODO remove after retrain
-    tokenizer.chat_template = open(chat_template_path).read()
+
+
     print("Tokenizer max length:", tokenizer.model_max_length)
     def _tokenize_fn(batch, idx=None, tokenize=True):
         # list of dicts: [{"role": "user", "content": ...}, {"role": "assistant", ...}]

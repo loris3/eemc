@@ -5,8 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --time=1-16:00:00
 #SBATCH --nodes=1
-#SBATCH --account=datamining
-#SBATCH --partition=p_datamining
+#SBATCH --partition=p_low
 
 python3 --version
 df -h

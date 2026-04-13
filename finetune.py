@@ -100,7 +100,7 @@ if __name__ == "__main__":
         seed=training_args.seed,
         packing=False,
         max_length=4096,
-        gradient_checkpointing=False,
+        gradient_checkpointing=True,
         ddp_find_unused_parameters=False,
     )
     tokenizer = AutoTokenizer.from_pretrained(model_args.base_model)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
 
     
-    dataset = load_dataset(data_args.train_dataset, split="train[0:10000]")
+    dataset = load_dataset(data_args.train_dataset, split="train")
     if "prompt" in dataset.column_names: # use "messages"
         dataset = dataset.remove_columns("prompt")
     trainer = SFTTrainer(
@@ -138,6 +138,7 @@ if __name__ == "__main__":
         
     
 
+    print("Saving model", flush=True)
 
     trainer.model.save_pretrained(training_args.output_dir)
 

@@ -30,6 +30,7 @@ class RepSimEstimator(BaseEstimator):
         pass
     def run(self):
         results = self.embeddings @ self.embeddings.T
+        results = results.float().cpu().numpy()
         self.influence_estimate = pd.DataFrame(
             results,
             index=list(range(self.embeddings.shape[0])),
