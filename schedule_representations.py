@@ -65,13 +65,13 @@ print(experiments)
 
 # Find all run_*.py scripts
 scripts_no_gpu = [
-"representations/run_gradsim_normalized.py",
-"representations/run_gradsim_unnormalized.py",
-"representations/run_gradsim_adam.py",
-"representations/run_datainf.py",
-"representations/run_bm25.py",
-"representations/run_jaccard.py",
-"representations/run_tfidf.py"
+    "representations/run_gradsim_normalized.py",
+    "representations/run_gradsim_unnormalized.py",
+    "representations/run_gradsim_adam.py",
+    "representations/run_datainf.py",
+    "representations/run_bm25.py",
+    "representations/run_jaccard.py",
+    "representations/run_tfidf.py"
 ]
 
 scripts_gpu = [

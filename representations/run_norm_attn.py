@@ -96,7 +96,15 @@ class NormalizedAttentionMapRepresentation(BaseRepresentation):
         base_model = getattr(self.model, "base_model", self.model)
         layers = base_model.model.model.layers
         
-        norm_maps = []
+        L = len(outputs.attentions)
+        norm_maps = torch.zeros(
+            (L, self.max_seq_len, self.max_seq_len),device=self.device
+        )
+        num_bytes = norm_maps.element_size() * norm_maps.nelement()
+        num_gb = num_bytes / (1024 ** 3)
+
+        print(f"Tensor size: {num_gb:.6f} GB")
+        chunk_size = 128
         for l, alpha_layer in enumerate(outputs.attentions):
             x_i = outputs.hidden_states[l][0, :seq_len_use, :]  
             attn = layers[l].self_attn
@@ -122,29 +130,51 @@ class NormalizedAttentionMapRepresentation(BaseRepresentation):
                 v = v.permute(1, 0, 2)                         
 
 
-         
+            # print("d_model", d_model)
             # head contribution weighted by attention + multi-head integration as in Appendix A of Kobayashi et al. 2020
             W = attn.o_proj.weight.view(num_heads, d_head, d_model)
-            tmp = torch.einsum("hjd, hdm -> hjm", v, W) # two-step so to not materialize full matrix   
-            integrated_contributions = torch.einsum("hij, hjm -> ijm", alpha, tmp)        
-                    
-            # norm-based attribution as in Appendix A of Kobayashi et al. 2020
-            pairwise_map = torch.norm(integrated_contributions, dim=-1)   
-            
-            # we pad to max_seq_len for SVD
-            if seq_len_use < self.max_seq_len:
-                pad = self.max_seq_len - seq_len_use
-                pairwise_map = F.pad(pairwise_map, (0, pad, 0, pad), value=0)
 
-            norm_maps.append(pairwise_map)
+            
+            
+            h, i, j = alpha.shape
+            m = W.shape[-1]
+
+            # norm-based attribution as in Appendix A of Kobayashi et al. 2020
+            ############### memory safe implementation: torch.norm(torch.einsum("hijd,hdm->ijm", A, W), dim=-1)
+            block_size=512 # adjust depending on gpu and model size
+            
+            out = torch.zeros((i, j), device=alpha.device, dtype=alpha.dtype)
+
+            # precompute per head (we want to avoid i,j,m materialization later)
+            vw = torch.einsum("hjd,hdm->hjm", v, W)  # [h,j,m]
+
+            for m0 in range(0, m, block_size):
+                m1 = min(m0 + block_size, m)
+
+                # [h, j, block]
+                t_block = vw[:, :, m0:m1]
+
+                # compute s_{ijb} = sum_h alpha[h,i,j] * t[h,j,b]
+                # result: [i,j,block]
+                s = torch.einsum("hij,hjb->ijb", alpha, t_block)
+
+                # accumulate sum over block dimension
+                out += (s ** 2).sum(dim=-1) # for norm below
+
+             
+            # print("out", out.shape,flush=True)
+            
+            
+            norm_maps[l,0:seq_len_use,0:seq_len_use] = torch.sqrt(out) # norm 
+            ###############################################################################    
             
              
-        # print("norm_maps", norm_maps[0].shape, torch.stack(norm_maps, dim=0).shape)
+        # print("norm_maps", norm_maps[0].shape)
         torch.manual_seed(42)
-        _, s, _ = torch.svd_lowrank(torch.stack(norm_maps, dim=0).float(), q=self.top_k_eig)
+        _, s, _ = torch.svd_lowrank(norm_maps.to(self.device), q=self.top_k_eig)
 
         doc_vector = s[:,:min(self.top_k_eig, s.size(1))].flatten()
-        print(doc_vector.shape, doc_vector)
+        print("doc_vec", doc_vector)
         return doc_vector.cpu()
         
 def main(args=None):
