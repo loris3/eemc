@@ -49,11 +49,11 @@ SBATCH_ARGS+=(--job-name="$JOB_NAME")
 SAFE_JOB_FILE="${JOB_FILE,,}"
 SAFE_JOB_FILE="${SAFE_JOB_FILE//[\[\]]/}"
 if [[ "$SAFE_JOB_FILE" == *jupyter* ]]; then
-    SBATCH_ARGS+=(--nodelist="shelob")
+    SBATCH_ARGS+=(--nodelist="dgx1")
 elif [[ "$SAFE_JOB_FILE" == *representations* ]]; then
     SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2,vader")
 elif [[ "$SAFE_JOB_FILE" == *similarity* ]]; then
-    SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2")
+    SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2,dgx1,vader")
 else
     SBATCH_ARGS+=(--nodelist="$NODELIST")
 fi

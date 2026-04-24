@@ -15,11 +15,33 @@ tasks=(
     olmo_2_heldout::olmes
 )
 
-models=(
-    "Qwen/Qwen3-0.6B-Base Qwen3-0.6B-Base_ftrace_date-lm_conversational_lr0.0001_seed42"
-    # "allenai/OLMo-2-1124-13B OLMo-2-1124-13B_ftrace_date-lm_conversational_lr0.0001_seed42"
-    # "meta-llama/Llama-3.2-1B Llama-3.2-1B_ftrace_date-lm_conversational_lr0.0001_seed42"
+
+
+
+
+
+readarray -t models < <(
+python3 - << 'EOF'
+import yaml
+with open("../experiments.yaml") as f:
+    cfg = yaml.safe_load(f)
+for base in cfg["base_models"]:
+    for exp in cfg["experiments"]:
+        base_model = base.split("/")[1]
+        model_dir = f"./models/{base_model}{exp['model']}"
+        dataset = exp["dataset"]       
+        print(f"{base} {model_dir}")
+        break
+    break
+EOF
 )
+echo "Evaluating models:"
+for cfg in "${models[@]}"; do
+  echo "$cfg"
+done
+
+
+
 
 baseline_models=(
     # "allenai/OLMo-2-0425-1B-SFT"
@@ -32,7 +54,7 @@ merge_list=()
 for entry in "${models[@]}"; do
     base_model=$(echo "$entry" | cut -d' ' -f1)
     adapter_model=$(echo "$entry" | cut -d' ' -f2)
-    merged_model_dir="../models/${adapter_model}-merged"
+    merged_model_dir="../${adapter_model}-merged"
     merge_list+=("$base_model|$adapter_model|$merged_model_dir")
 done
 
@@ -44,13 +66,11 @@ cat > "$merge_script" <<EOL
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Merge"
 #SBATCH --container-image="$CONTAINER_IMAGE"
-#SBATCH --nodelist=$NODELIST
+#SBATCH --nodelist=galadriel,shelob,dgx-h100-em2,vader
 #SBATCH --container-mount-home
 #SBATCH --mem=128GB
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
-#SBATCH --partition=p_datamining
-#SBATCH --account=datamining
 #SBATCH --gres=gpu:0
 #SBATCH --time=0-01:00:00
 # #SBATCH --container-workdir=$CONTAINER_WORKDIR
@@ -70,7 +90,7 @@ if [ ! -d "\$merged_model_dir" ]; then
     echo "Merging \$adapter_model"
     python3 ../merge_lora_to_hf.py \
         --base_model "\$base_model" \
-        --adapter_dir "../models/\${adapter_model}" \
+        --adapter_dir "../\${adapter_model}" \
         --output_dir "\$merged_model_dir"
 else
     echo "Already merged: \$merged_model_dir"
@@ -85,7 +105,7 @@ eval_list=()
 for task in "${tasks[@]}"; do
     for entry in "${models[@]}"; do
         adapter_model=$(echo "$entry" | cut -d' ' -f2)
-        merged_model_dir="../models/${adapter_model}-merged"
+        merged_model_dir="../${adapter_model}-merged"
         out_dir="$EVALDIR/$task/${adapter_model}-merged"
         eval_list+=("$task|$merged_model_dir|$out_dir")
     done
@@ -102,13 +122,11 @@ eval_script=$(mktemp)
 cat > "$eval_script" <<EOL
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Eval"
-#SBATCH --nodelist=$NODELIST
+#SBATCH --nodelist=galadriel,shelob,dgx-h100-em2,vader
 #SBATCH --container-mount-home
-#SBATCH --partition=p_datamining
-#SBATCH --account=datamining
 #SBATCH --container-image="$CONTAINER_IMAGE_EVAL"
 #SBATCH --requeue
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:1
@@ -126,6 +144,9 @@ IFS='|' read -r task model out_dir <<< "\${items[\$SLURM_ARRAY_TASK_ID]}"
 model_name=\$(basename "\$model")
 echo "Evaluating task=\$task model=\$model out_dir=\$out_dir model_name=\$model_name "
 
+
+
+pip freeze
 python3 -m oe_eval.launch \
     --model "\$model" \
     --num-workers=1 \
@@ -158,7 +179,7 @@ eval_list=()
 
 for entry in "${models[@]}"; do
     adapter_model=$(echo "$entry" | cut -d' ' -f2)
-    merged_model_dir="./models/${adapter_model}"
+    merged_model_dir="./${adapter_model}"
     out_dir="$EVALDIR/${adapter_model}"
     eval_list+=("$merged_model_dir|$out_dir")
 done
@@ -177,11 +198,9 @@ cat > "$eval_script" <<EOL
 #SBATCH --job-name="[EEMC] Custom Evals"
 #SBATCH --nodelist=$NODELIST
 #SBATCH --container-mount-home
-#SBATCH --partition=p_datamining
-#SBATCH --account=datamining
 #SBATCH --container-image="$CONTAINER_IMAGE_EVAL"
 #SBATCH --requeue
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:1
@@ -198,6 +217,8 @@ IFS=\$'\n' read -r -d '' -a items <<< "\$EVAL_LIST"
 IFS='|' read -r model out_dir <<< "\${items[\$SLURM_ARRAY_TASK_ID]}"
 model_name=\$(basename "\$model")
 echo "Evaluating model=\$model out_dir=\$out_dir model_name=\$model_name on custom tasks "
+
+
 
 python3 qa_eval.py     --model_path "\$model"     --dataset loris3/ftrace_date-lm_conversational --split=train    
 python3 qa_eval.py     --model_path "\$model"     --dataset loris3/squad_v2_conversational --split=validation    

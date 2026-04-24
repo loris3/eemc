@@ -8,7 +8,6 @@ import torch
 import numpy as np
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from peft import PeftModel
 from huggingface_hub import hf_hub_download
 from evaluate import load
 

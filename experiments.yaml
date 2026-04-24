@@ -1,0 +1,29 @@
+base_models:
+  - Qwen/Qwen3-1.7B-Base
+  - Qwen/Qwen3-0.6B-Base
+  - Qwen/Qwen3-4B-Base
+  - meta-llama/Llama-3.2-1B
+  - allenai/OLMo-2-0425-1B
+  - allenai/Olmo-3-1025-7B
+  - Qwen/Qwen3-8B-Base
+
+experiments:
+  - name: ftrace
+    model: _ftrace_date-lm_conversational_lr0.0001_seed42
+    dataset: loris3/ftrace_date-lm_conversational-sample
+
+  - name: math
+    model: _tulu-3-sft-personas-math_lr0.0001_seed42
+    dataset: loris3/tulu-3-sft-personas-math-sample
+
+  - name: code
+    model: _tulu-3-sft-personas-code_lr0.0001_seed42
+    dataset: loris3/tulu-3-sft-personas-code-sample
+
+  - name: squad_v2
+    model: _squad_v2_conversational_lr0.0001_seed42
+    dataset: loris3/squad_v2_conversational-sample
+
+  - name: sft
+    model: _tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42
+    dataset: loris3/tulu-3-sft-olmo-2-mixture-0225-sample

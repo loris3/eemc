@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --mem=128G
+#SBATCH --mem=256G
 #SBATCH --cpus-per-task=32
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 #SBATCH --constraint="nvidia-h100|nvidia-h200"
-#SBATCH --time=1-16:00:00
+#SBATCH --time=2-16:00:00
 #SBATCH --nodes=1  
-
-
+#SBATCH --container-writable 
+#SBATCH --partition=p_datamining
+#SBATCH --account=datamining
 # Print environment info
 python3 --version
 df -h
@@ -20,61 +21,51 @@ export WANDB_PROJECT="eemc_finetuning"
 
 set -e
 
-
-BATCH_SIZE_32B=8
-GRAD_ACC_32B=2
-
-BATCH_SIZE_13B=8
-GRAD_ACC_13B=2
+# pip freeze
 
 
 
 BASE_MODELS=(
-  # "Qwen/Qwen3-0.6B-Base"
-  # "Qwen/Qwen3-1.7B-Base"
-  # # "Qwen/Qwen3-4B-Base"
-  # # "Qwen/Qwen3-8B-Base"
-  # "allenai/OLMo-2-1124-13B"
-  # "allenai/Olmo-3-1025-7B"
-  # "allenai/OLMo-2-0425-1B"
-  # "meta-llama/Llama-3.2-1B"
+  # "Qwen/Qwen3-0.6B-Base 8"
+  # "Qwen/Qwen3-1.7B-Base 8"
+  #  "Qwen/Qwen3-4B-Base 4"
+  "Qwen/Qwen3-8B-Base 4"
+  # "allenai/Olmo-3-1025-7B 4" 
+  # "allenai/OLMo-2-0425-1B 8"
+  # "meta-llama/Llama-3.2-1B 8"
 )
-
+  # "allenai/OLMo-2-1124-13B 2"
 DATASETS=(
-    "loris3/ftrace_date-lm_conversational"
-  # "allenai/tulu-3-sft-personas-math"
-  #  "allenai/tulu-3-sft-personas-code"
-  #  "loris3/squad_v2_conversational"
+   "loris3/ftrace_date-lm_conversational"
+  #  "loris3/squad_v2_conversational" 
+   "allenai/tulu-3-sft-personas-math"
+   "allenai/tulu-3-sft-personas-code"
   #  "allenai/tulu-3-sft-olmo-2-mixture-0225"
-
 )
-
-
 
 NUM_PROCESSES=${SLURM_GPUS_ON_NODE:-1}
+TARGET_EFF_BS=64
 
+for ENTRY in "${BASE_MODELS[@]}"; do
+  read -r BASE_MODEL BATCH_SIZE <<< "$ENTRY"
 
-for BASE_MODEL in "${BASE_MODELS[@]}"; do
-  if [[ "$BASE_MODEL" == *"32B"* ]]; then
-      BATCH_SIZE=$BATCH_SIZE_32B
-      GRAD_ACC=$GRAD_ACC_32B
+  TOTAL_PER_STEP=$(( BATCH_SIZE * NUM_PROCESSES ))
+  GRAD_ACC=$(( (TARGET_EFF_BS + TOTAL_PER_STEP - 1) / TOTAL_PER_STEP ))
 
-  elif [[ "$BASE_MODEL" == *"13B"* ]]; then
-      BATCH_SIZE=$BATCH_SIZE_13B
-      GRAD_ACC=$GRAD_ACC_13B
-  else
-      echo "Unknown model size in $BASE_MODEL, using safe defaults"
-      BATCH_SIZE=8
-      GRAD_ACC=2
+  EFFECTIVE_BATCH_SIZE=$((BATCH_SIZE * GRAD_ACC * NUM_PROCESSES))
+
+  if [[ "$EFFECTIVE_BATCH_SIZE" -ne "$TARGET_EFF_BS" ]]; then
+    echo "ERROR: batch size mismatch" >&2
+    echo "  computed: $EFFECTIVE_BATCH_SIZE" >&2
+    echo "  target:   $TARGET_EFF_BS" >&2
+    exit 1
   fi
+  echo "Model: $BASE_MODEL"
+  echo "Per-device batch size: $BATCH_SIZE"
+  echo "Gradient accumulation steps: $GRAD_ACC"
+  echo "Effective batch size: $EFFECTIVE_BATCH_SIZE"
 
-    EFFECTIVE_BATCH_SIZE=$((BATCH_SIZE * GRAD_ACC * NUM_PROCESSES))
-    echo "Base model: $BASE_MODEL"
-    echo "Per-device batch size: $BATCH_SIZE"
-    echo "Gradient accumulation steps: $GRAD_ACC"
-    echo "Effective batch size: $EFFECTIVE_BATCH_SIZE"
   for DATASET in "${DATASETS[@]}"; do
-
     echo "Fine-tuning base_model=$BASE_MODEL dataset=$DATASET"
 
     python3 -m accelerate.commands.launch finetune.py \
@@ -91,7 +82,7 @@ for BASE_MODEL in "${BASE_MODELS[@]}"; do
       --save_total_limit "2" \
       --bf16 "true" \
       --report_to "wandb"\
-      --fsdp "full_shard auto_wrap"
+      # --fsdp "full_shard auto_wrap"
 
 
   done

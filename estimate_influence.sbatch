@@ -2,10 +2,11 @@
 #SBATCH --job-name="[EEMC] Influence Estimation"
 #SBATCH --mem=512G
 #SBATCH --cpus-per-task=64  
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --time=1-7:59:00
 #SBATCH --nodes=1
-
+#SBATCH --partition=p_datamining
+#SBATCH --account=datamining
 source .env
 python3 --version
 
@@ -14,16 +15,28 @@ ulimit -n 65535
 pip show datasets
 
 
-CONFIGS=(
-  "Qwen3-0.6-Base ./models/Qwen3-0.6B-Base_ftrace_date-lm_conversational_lr0.0001_seed42 loris3/ftrace_date-lm_conversational-sample" 
-  "Qwen3-0.6-Base ./models/Qwen3-0.6B-Base_tulu-3-sft-personas-math_lr0.0001_seed42 loris3/tulu-3-sft-personas-math-sample" 
-  "Qwen3-0.6-Base ./models/Qwen3-0.6B-Base_tulu-3-sft-personas-code_lr0.0001_seed42 loris3/tulu-3-sft-personas-code-sample" 
-  "Qwen3-0.6-Base ./models/Qwen3-0.6B-Base_squad_v2_conversational_lr0.0001_seed42 loris3/squad_v2_conversational-sample" 
-  "Qwen3-0.6-Base ./models/Qwen3-0.6B-Base_tulu-3-sft-olmo-2-mixture-0225_lr0.0001_seed42 loris3/tulu-3-sft-olmo-2-mixture-0225-sample" 
-)
 
-# Loop over triplets
-for CONFIG in "${CONFIGS[@]}"; do
+
+
+readarray -t MODEL_IE_CONFIGS < <(
+python3 - << 'EOF'
+import yaml
+with open("experiments.yaml") as f:
+    cfg = yaml.safe_load(f)
+for base in cfg["base_models"]:
+    for exp in cfg["experiments"]:
+        base_model = base.split("/")[1]
+        model_dir = f"./models/{base_model}{exp['model']}"
+        dataset = exp["dataset"]       
+        print(f"{base_model} {model_dir} {dataset}")
+EOF
+)
+echo "Estimating for models:"
+for cfg in "${MODEL_IE_CONFIGS[@]}"; do
+  echo "$cfg"
+done
+
+for CONFIG in "${MODEL_IE_CONFIGS[@]}"; do
   BASE_MODEL=$(echo $CONFIG | awk '{print $1}')
   MODEL_DIR=$(echo $CONFIG | awk '{print $2}')
   DATASET=$(echo $CONFIG | awk '{print $3}')
