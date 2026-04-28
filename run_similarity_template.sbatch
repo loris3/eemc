@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Similarity"
-#SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --time=0-6:00:00
 #SBATCH --nodes=1

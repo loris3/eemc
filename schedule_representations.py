@@ -21,7 +21,6 @@ for base in base_models:
             exit(-1)
         experiments.append(new_exp)
 
-print(experiments)
 
 
 # Find all run_*.py scripts
@@ -30,9 +29,9 @@ scripts_no_gpu = [
     "representations/run_gradsim_unnormalized.py",
     "representations/run_gradsim_adam.py",
     "representations/run_datainf.py",
-    # "representations/run_bm25.py",
-    # "representations/run_jaccard.py",
-    # "representations/run_tfidf.py"
+    "representations/run_bm25.py",
+    "representations/run_jaccard.py",
+    "representations/run_tfidf.py"
 ]
 
 scripts_gpu = [
@@ -43,6 +42,7 @@ scripts_gpu = [
     "representations/run_norm_attn.py",
 ]
 scripts = scripts_no_gpu + scripts_gpu
+
 
 
 def main():
@@ -64,7 +64,7 @@ def main():
             job_label = script_path.split("/")[1].split(".")[0].replace("run_", "")
             job_name = f"[EEMC] Representation {job_label} for {exp['model']}"
 
-
+            
             cmd = ["./schedule.sh", sbatch_file, module_name, "--job-name", job_name] + args
             print("Scheduling:", " ".join(cmd))
             subprocess.run(cmd)

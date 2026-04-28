@@ -95,7 +95,7 @@ experiments_func = [
         ("ndcg_k", lambda a, b, k: ndcg_k(a, b, k)),
         ("sign_agreement", lambda a, b, _: torch.mean(torch.stack([(torch.sign(a[i]) == torch.sign(b[i])).float().mean() for i in range(a.shape[0])])).item()),
         ("f1_at_k", lambda a, b, k: f1_at_k(a, b, k)),    
-        ("rbo", lambda a, b, k: rbo(a, b, k)),      
+        ("rbo", lambda a, b, _: rbo(a, b)),      
         ] 
 def print_peak_ram():
     usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -172,7 +172,7 @@ def main():
     parser.add_argument("--k", required=True, type=int)
     # parser.add_argument("--normalize", action="store_true")
     args = parser.parse_args()
-
+    
     base_folder = os.path.join(
         args.experiment_name,
         args.train_dataset_name,
@@ -196,6 +196,8 @@ def main():
     # REP experiments
 
     for score_name, fn in tqdm(experiments_rep, desc="experiments_rep"):
+        if (args.k == -1) and (score_name in ["cycle_knn", "cknna"]):
+            continue
         out_path = results_path(results_folder_rep, score_name, args.k, args)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
         if os.path.exists(out_path):
@@ -206,13 +208,17 @@ def main():
         if features_a is None:
             print("Loading features (REP)...")
             features_a, influence_estimate_a = load_results(args.sim_script_a, inner_args)
+            print_peak_ram()
             features_b, influence_estimate_b = load_results(args.sim_script_b, inner_args)
+            print_peak_ram()
             features_a = features_a - features_a.mean(dim=0, keepdim=True)
             features_b = features_b - features_b.mean(dim=0, keepdim=True)
             if args.normalize:
                 features_a = F.normalize(features_a, dim=-1)
                 features_b = F.normalize(features_b, dim=-1)
+            print("Loaded features (REP).")
         run_experiment(to_tensor(features_a), to_tensor(features_b), score_name, args.k, args, fn, out_path, "-", "-")
+        print_peak_ram()
     del features_a, features_b
     
 
@@ -228,6 +234,8 @@ def main():
         ("most_influential", lambda estimate: torch.abs(estimate)),
     ]
     for score_name, fn in tqdm(experiments_func, desc="experiments_func"):
+        if (args.k == -1) and (score_name in ["ndcg_k", "f1_at_k"]):
+            continue
         is_IF = lambda sim_script : ("gradsim" in sim_script) or ("datainf" in sim_script)
         for (selection_strategy_name_a, selection_strategy_fn_a) in if_sorting_strategies:
             for (selection_strategy_name_b, selection_strategy_fn_b) in if_sorting_strategies:
@@ -254,9 +262,10 @@ def main():
                 if influence_estimate_a is None:
                     print("Loading features (FUNC)...")
                     _, influence_estimate_a = load_results(args.sim_script_a, inner_args)
+                    print_peak_ram()
                     _, influence_estimate_b = load_results(args.sim_script_b, inner_args)
-                    
-                
+                    print_peak_ram()
+                    print("Loaded features (REP).")
                 
                 a = to_tensor(influence_estimate_a)
                 b = to_tensor(influence_estimate_b)
@@ -269,7 +278,7 @@ def main():
                 # print("is_IF", is_IF(args.sim_script_a), is_IF(args.sim_script_b))
                 
                 run_experiment(a, b, score_name, args.k, args, fn, out_path, selection_strategy_name_a if is_IF(args.sim_script_a) else "-", selection_strategy_name_b if is_IF(args.sim_script_b) else "-")
-
+                print_peak_ram()
 
 if __name__ == "__main__":
     main()

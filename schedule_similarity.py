@@ -1,12 +1,57 @@
 import subprocess
 import itertools
 from schedule_representations import experiments, scripts_gpu, scripts_no_gpu
+import math
+import os
 
-scripts = scripts_no_gpu + scripts_gpu
+def get_dir_size_gb(path: str) -> float:
+    """Return directory size in GB."""
+    total_size = 0
+    for dirpath, _, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            if os.path.exists(fp):
+                total_size += os.path.getsize(fp)
+    return total_size / (1024 ** 3)
 
+
+def get_ram(exp, representation_name, cache_root="./cache/representations"):
+    """
+    Estimate RAM requirement (in GB) based on cached tensor directory size.
+
+    Args:
+        exp: experiment dict
+        representation_name: e.g. 'datainf', 'gradsim_normalized', etc.
+        cache_root: base cache dir
+        safety_factor: multiplier to avoid OOM
+
+    Returns:
+        int: RAM in GB (rounded up)
+    """
+    cache_dir = os.path.join(
+        cache_root,
+        representation_name,
+        os.path.basename(exp["dataset"]),
+        "test",
+        os.path.basename(exp["dataset"]),
+        "test",
+        exp["model"],
+    )
+
+
+
+    size_gb = get_dir_size_gb(cache_dir)
+
+  
+
+    return math.ceil(size_gb)   
+
+SCRIPTS = scripts_no_gpu + scripts_gpu
+KS = [-1]
+NORMALIZE = [True, False]
 def main():
     for exp in experiments:
-        for script_a, script_b in itertools.combinations(scripts, 2):
+        for script_a, script_b in itertools.combinations(SCRIPTS, 2):
             # Convert script paths to module-style names
             module_a = script_a.replace(".py", "").replace("/", ".")
             module_b = script_b.replace(".py", "").replace("/", ".")
@@ -29,14 +74,19 @@ def main():
             ]
             
 
-            for normalize in [True, False]:
-                for k in [10]:#, 50, 100]: #25, 
-                    cmd = ["./schedule.sh", "run_similarity_template.sbatch", "structural_similarity", "--job-name", job_name] + args\
+            for normalize in NORMALIZE:
+                for k in KS:#, 50, 100]: #25, 
+                    ram_a = get_ram(exp, representation_name=label_a)
+                    ram_b = get_ram(exp, representation_name=label_b)
+                    ram = ((ram_a + ram_b)*3) + 36 # 36G for docker image
+                    # print("RAM_a", ram_a, "RAM_b", ram_b)
+                    cmd = ["./schedule.sh", "run_similarity_template.sbatch", "structural_similarity", "--job-name", job_name, f"--mem={ram}G"] + args\
                             + (["--normalize"] if normalize else [])\
                             + ["--k", str(k)]
-                    print("Scheduling:", " ".join(cmd))
+      
+                    print(f"Scheduling with {ram}GB:", " ".join(cmd))
                     subprocess.run(cmd) 
-                    # exit()
+    
                     
 
 if __name__ == "__main__":

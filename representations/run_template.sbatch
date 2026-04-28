@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Representations"
-#SBATCH --mem=64G
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=8
 #SBATCH --time=1-16:00:00
 #SBATCH --nodes=1
-
+#SBATCH --partition=p_low
 python3 --version
 df -h
 

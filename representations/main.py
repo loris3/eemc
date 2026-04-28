@@ -118,7 +118,7 @@ class BaseRepresentation(ABC):
                         futures = [executor.submit(worker_copy, batch) for batch in file_batches]
 
            
-                        with tqdm(total=len(futures), desc="Copying files") as pbar:
+                        with tqdm(total=len(futures), desc="Copying files (rep)") as pbar:
                             for future in as_completed(futures):
                                 future.result()  
                                 pbar.update(1)

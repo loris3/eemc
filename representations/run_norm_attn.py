@@ -141,7 +141,7 @@ class NormalizedAttentionMapRepresentation(BaseRepresentation):
 
             # norm-based attribution as in Appendix A of Kobayashi et al. 2020
             ############### memory safe implementation: torch.norm(torch.einsum("hijd,hdm->ijm", A, W), dim=-1)
-            block_size=512 # adjust depending on gpu and model size
+            block_size=256 # adjust depending on gpu and model size
             
             out = torch.zeros((i, j), device=alpha.device, dtype=alpha.dtype)
 
