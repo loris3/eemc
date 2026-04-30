@@ -45,8 +45,9 @@ def copy_file(src_file, src_root, dst_root):
 class BaseRepresentation(ABC):
     def __init__(self, name, train_dataset, train_dataset_name, train_dataset_split,
                  test_dataset, test_dataset_name, test_dataset_split,
-                 model_path, cache_dir: str = "./cache/representations", results_only=False, normalize_vectors=False):
+                 model_path, cache_dir: str = "./cache/representations", results_only=False, normalize_vectors=False, func_only=False):
         self.name = name
+        self.func_only = func_only
         self.train_dataset = train_dataset
         self.train_dataset_name = train_dataset_name
         self.train_dataset_split = train_dataset_split
@@ -78,7 +79,7 @@ class BaseRepresentation(ABC):
         os.makedirs(self.local_cache_dir, exist_ok=True)
         self.results_only = results_only
         self.normalize_vectors = normalize_vectors
-        if self.results_only:
+        if self.results_only and not self.func_only:
             self.copy_cache_to_tmp()
            
 
@@ -178,20 +179,3 @@ class BaseRepresentation(ABC):
             embeddings = F.normalize(embeddings, p=2, dim=1)
         return embeddings
 
-
-# --- GradientRepresentation ---
-
-
-    
-# ----------------- NormalizedAttentionMapRepresentation -----------------
-
-
-# ----------------- RepSimRepresentation -----------------
-
-
-# ----------------- DataInfRepresentation -----------------
-
-# ----------------- TFIDF -----------------
-
-
-# ----------------- Jaccard -----------------

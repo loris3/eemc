@@ -97,10 +97,16 @@ class AlignmentMetrics:
     def cka(feats_A, feats_B, kernel_metric='ip', rbf_sigma=1.0, unbiased=False):
         """Computes the unbiased Centered Kernel Alignment (CKA) between features."""
         
-        if kernel_metric == 'ip':
-            # Compute kernel matrices for the linear case
-            K = torch.mm(feats_A, feats_A.T)
-            L = torch.mm(feats_B, feats_B.T)
+        # if kernel_metric == 'ip':
+        #     # Compute kernel matrices for the linear case
+        #     K = torch.mm(feats_A, feats_A.T)
+        #     L = torch.mm(feats_B, feats_B.T)
+        if kernel_metric == 'ip': # for numerical stability
+            dA = feats_A.shape[1]
+            dB = feats_B.shape[1]
+
+            K = (feats_A @ feats_A.T) / dA
+            L = (feats_B @ feats_B.T) / dB
         elif kernel_metric == 'rbf':
             # COMPUTES RBF KERNEL
             K = torch.exp(-torch.cdist(feats_A, feats_A) ** 2 / (2 * rbf_sigma ** 2))
@@ -113,6 +119,18 @@ class AlignmentMetrics:
         hsic_kk = hsic_fn(K, K)
         hsic_ll = hsic_fn(L, L)
         hsic_kl = hsic_fn(K, L)
+        # print("hsic_kk", hsic_kk)
+        # print("hsic_ll", hsic_ll)
+        # print("hsic_kl", hsic_kl)
+        # def check(name, X):
+        #     print(name,
+        #         "finite:", torch.isfinite(X).all().item(),
+        #         "min:", X.min().item(),
+        #         "max:", X.max().item(),
+        #         "mean:", X.mean().item())
+
+        # check("K", K)
+        # check("L", L)
 
         # Compute CKA
         #print('hsic', hsic_kl)
@@ -294,18 +312,23 @@ def hsic_unbiased(K, L):
     > Reference: https://jmlr.csail.mit.edu/papers/volume13/song12a/song12a.pdf
     """
     m = K.shape[0]
+    # print("m =", L.shape[0])
 
     # Zero out the diagonal elements of K and L
     K_tilde = K.clone().fill_diagonal_(0)
+    # print("K_tilde",K_tilde)
     L_tilde = L.clone().fill_diagonal_(0)
-
+    # print("L_tilde",L_tilde)
     # Compute HSIC using the formula in Equation 5
+    # print("(torch.sum(K_tilde * L_tilde.T))", (torch.sum(K_tilde * L_tilde.T)))
+    # print("(torch.sum(K_tilde) * torch.sum(L_tilde) / ((m - 1) * (m - 2)))", (torch.sum(K_tilde) * torch.sum(L_tilde) / ((m - 1) * (m - 2))))
+    # print("(2 * torch.sum(torch.mm(K_tilde, L_tilde)) / (m - 2))", (2 * torch.sum(torch.mm(K_tilde, L_tilde)) / (m - 2)))
     HSIC_value = (
         (torch.sum(K_tilde * L_tilde.T))
         + (torch.sum(K_tilde) * torch.sum(L_tilde) / ((m - 1) * (m - 2)))
         - (2 * torch.sum(torch.mm(K_tilde, L_tilde)) / (m - 2))
     )
-
+    # print("HSIC_value", HSIC_value)
     HSIC_value /= m * (m - 3)
     return HSIC_value
 

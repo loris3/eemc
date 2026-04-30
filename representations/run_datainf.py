@@ -14,7 +14,7 @@ import pandas as pd
 from representations.load_data import (   
     load_data_and_estimators)
 class DataInfRepresentation(BaseRepresentation):
-    def __init__(self, estimator, results_only=False):
+    def __init__(self, estimator, results_only=False,func_only=False,):
         super().__init__("datainf",
                          estimator.test_dataset,
                          estimator.test_dataset_name,
@@ -23,10 +23,11 @@ class DataInfRepresentation(BaseRepresentation):
                          estimator.test_dataset_name,
                          estimator.test_dataset_split,
                          estimator.model_path,
-                         results_only=results_only)
+                         results_only=results_only,func_only=func_only)
         self.estimator = estimator
         self._hvp_dict = None
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
         
     @property
     def hvp_dict(self):
@@ -81,11 +82,11 @@ def main(args=None):
         eval_mode=True # must be True so that cache/gradients not /tmp/cache... is used      
     )
 
-    rep = DataInfRepresentation(estimator_datainf, results_only=args.results_only)
+    rep = DataInfRepresentation(estimator_datainf, results_only=args.results_only, func_only=args.func_only,)
 
 
     del test_dataset
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 if __name__ == "__main__":
     main()
     

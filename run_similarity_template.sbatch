@@ -5,6 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --partition=p_low
 #SBATCH --account=datamining
+#SBATCH --requeue 
 python3 --version
 df -h
 

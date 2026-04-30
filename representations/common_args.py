@@ -12,6 +12,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--mem", required=False)
     parser.add_argument("--normalize", action="store_true")
     parser.add_argument("--results_only", action="store_true")
+    parser.add_argument("--func_only", action="store_true")
     return parser
 
 

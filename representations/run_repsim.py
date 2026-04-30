@@ -42,11 +42,11 @@ class RepSimEstimator(BaseEstimator):
 class RepSimRepresentation(BaseRepresentation):
     def __init__(self, model, tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
-                 model_path, name="rep_sim", results_only=False):
+                 model_path, name="rep_sim", results_only=False, func_only=False,):
 
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
-                         model_path, results_only=results_only)
+                         model_path, results_only=results_only, func_only=func_only,)
         self.estimator = RepSimEstimator(
                 model_path=model_path,
                 train_dataset=train_dataset,
@@ -64,7 +64,8 @@ class RepSimRepresentation(BaseRepresentation):
             self.tokenized_dataset = tokenized_dataset
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model = model.to(self.device).eval()
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
     def _embed_doc(self, idx: int) -> torch.Tensor:
 
         if self.results_only:
@@ -119,10 +120,11 @@ def main(args=None):
                 args.test_dataset_split, 
                 args.model,
                 results_only=args.results_only,
+                func_only=args.func_only,
                 name=f"rep_sim")
 
     del train_dataset, test_dataset, tokenizer, model
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 
    
 if __name__ == "__main__":

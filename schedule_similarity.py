@@ -51,7 +51,7 @@ KS = [-1]
 NORMALIZE = [True, False]
 def main():
     for exp in experiments:
-        for script_a, script_b in itertools.combinations(SCRIPTS, 2):
+        for script_a, script_b in itertools.combinations_with_replacement(SCRIPTS, 2):
             # Convert script paths to module-style names
             module_a = script_a.replace(".py", "").replace("/", ".")
             module_b = script_b.replace(".py", "").replace("/", ".")

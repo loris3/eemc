@@ -38,11 +38,11 @@ class SentenceTransformerEstimator(BaseEstimator):
 class SentenceTransformerRepresentation(BaseRepresentation):
     def __init__(self, model_path, decoded_texts, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
-                 results_only=False):
+                 results_only=False,func_only=False,):
 
         super().__init__(f"embd_{model_path}", train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
-                         model_path, results_only=results_only)
+                         model_path, results_only=results_only,func_only=func_only)
         self.decoded_texts = decoded_texts
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -64,7 +64,8 @@ class SentenceTransformerRepresentation(BaseRepresentation):
         if not results_only:
             self.st_model = SentenceTransformer(model_path, trust_remote_code=True)
             self.st_model.to(self.device)
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
 
 
 
@@ -105,10 +106,10 @@ def main(args=None):
                     test_dataset, 
                     args.test_dataset_name, 
                     args.test_dataset_split, 
-                    results_only=args.results_only
+                    results_only=args.results_only, func_only=args.func_only,
                     )
     del train_dataset, test_dataset
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 
 if __name__ == "__main__":
     main()

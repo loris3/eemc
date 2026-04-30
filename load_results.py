@@ -55,7 +55,9 @@ def abbreviate_row(row):
 
 
 def load():
-    df = pd.read_parquet("./results/similarity_merged/")
+    return pd.read_parquet("./results/similarity_merged/")
+def format(df):
+    
     df = df.apply(abbreviate_row, axis=1)
     df["k"] = df["k"].fillna(-1)
     df["Rep_A"] = df["Rep_A"].str.replace(".py","")
@@ -66,7 +68,7 @@ def load():
     df["Rep_A"] = df["Rep_A"].str.replace("representations.","")
     df["Rep_B"] = df["Rep_B"].str.replace("representations.","")
 
-
+    df = df.drop(columns=["selection_strategy_name_a", "selection_strategy_name_b"])
     with open("experiments.yaml", "r") as f:
         cfg = yaml.safe_load(f)
 

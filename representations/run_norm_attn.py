@@ -41,10 +41,10 @@ class NormalizedAttentionMapEstimator(BaseEstimator):
 class NormalizedAttentionMapRepresentation(BaseRepresentation):
     def __init__(self, model,    tokenizer,tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,
-                 model_path, top_k_eig=128, name="spectral_attention", results_only=False):
+                 model_path, top_k_eig=128, name="spectral_attention", results_only=False,func_only=False,):
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
-                         model_path, results_only=results_only)
+                         model_path, results_only=results_only, func_only=func_only)
         self.estimator = NormalizedAttentionMapEstimator(
                 model_path=model_path,
                 train_dataset=train_dataset,
@@ -72,7 +72,8 @@ class NormalizedAttentionMapRepresentation(BaseRepresentation):
             self.top_k_eig = top_k_eig
             self.device ="cuda"
             self.model.to(self.device).eval()
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
 
     def _embed_doc(self, idx: int) -> torch.Tensor:
         import torch
@@ -208,10 +209,11 @@ def main(args=None):
                  args.test_dataset_split, 
                  args.model,
                  results_only=args.results_only, 
+                 func_only=args.func_only,
         )
 
     del train_dataset, test_dataset, tokenizer, model
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 
    
 if __name__ == "__main__":

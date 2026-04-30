@@ -85,9 +85,9 @@ def f1_at_k(a, b, k):
 experiments_rep = [
     ("cka", lambda a,b,k: AlignmentMetrics.cka(a,b)),
     ("unbiased_cka", lambda a,b,k: AlignmentMetrics.unbiased_cka(a,b)),
-    # ("svcca", lambda a,b,k: AlignmentMetrics.svcca(a,b)),
-    ("cknna", lambda a,b,k: AlignmentMetrics.cknna(a,b,topk=k)),
-    ("cycle_knn", lambda a,b,k: AlignmentMetrics.cycle_knn(a,b,topk=k)),
+    ### ("svcca", lambda a,b,k: AlignmentMetrics.svcca(a,b)),
+    # ("cknna", lambda a,b,k: AlignmentMetrics.cknna(a,b,topk=k)),
+    # ("cycle_knn", lambda a,b,k: AlignmentMetrics.cycle_knn(a,b,topk=k)),
 ]
 experiments_func = [
         ("spearman_rho", spearman),
@@ -114,7 +114,7 @@ def load_results(module_name, args):
     module = SourceFileLoader(module_name, file_path).load_module()
     return module.main(args)
 
-def build_inner_args(args):
+def build_inner_args(args, func_only):
     inner_args = []
     for key, value in vars(args).items():
         if key in ["experiment_name","sim_script_a","sim_script_b","k","normalize"]:
@@ -126,6 +126,8 @@ def build_inner_args(args):
         else:
             inner_args.extend([flag,str(value)])
     inner_args.append("--results_only")
+    if func_only:
+        inner_args.append("--func_only")
     return inner_args
 
 def run_experiment(features_a, features_b, score_name, k, args, metric_fn, out_path, selection_strategy_name_a, selection_strategy_name_b):
@@ -186,7 +188,7 @@ def main():
     os.makedirs(results_folder_rep, exist_ok=True)
  
 
-    inner_args = build_inner_args(args)
+
 
     # Lazy loading
     features_a = None
@@ -198,24 +200,30 @@ def main():
     for score_name, fn in tqdm(experiments_rep, desc="experiments_rep"):
         if (args.k == -1) and (score_name in ["cycle_knn", "cknna"]):
             continue
+        if args.sim_script_a == args.sim_script_b:
+            continue
         out_path = results_path(results_folder_rep, score_name, args.k, args)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
         if os.path.exists(out_path):
             # pass
-            print(f"Skipping existing {out_path}", flush=True)
+            print(f"Skipping existing REP {out_path}", flush=True)
             continue
     
         if features_a is None:
             print("Loading features (REP)...")
-            features_a, influence_estimate_a = load_results(args.sim_script_a, inner_args)
+            features_a, influence_estimate_a = load_results(args.sim_script_a, build_inner_args(args, func_only=False))
             print_peak_ram()
-            features_b, influence_estimate_b = load_results(args.sim_script_b, inner_args)
+            features_b, influence_estimate_b = load_results(args.sim_script_b, build_inner_args(args, func_only=False))
             print_peak_ram()
             features_a = features_a - features_a.mean(dim=0, keepdim=True)
             features_b = features_b - features_b.mean(dim=0, keepdim=True)
             if args.normalize:
                 features_a = F.normalize(features_a, dim=-1)
                 features_b = F.normalize(features_b, dim=-1)
+                print(features_a.norm(dim=-1).mean(), features_a.norm(dim=-1).std())
+                print(features_b.norm(dim=-1).mean(), features_b.norm(dim=-1).std())
+                assert not torch.isnan(features_a).any(), "NaNs in features_a after normalize"
+                assert not torch.isnan(features_b).any(), "NaNs in features_b after normalize"
             print("Loaded features (REP).")
         run_experiment(to_tensor(features_a), to_tensor(features_b), score_name, args.k, args, fn, out_path, "-", "-")
         print_peak_ram()
@@ -254,16 +262,15 @@ def main():
                 # print("out_path", out_path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
                 if os.path.exists(out_path):
+                    print(f"Skipping existing FUNC {out_path}", flush=True)
                     continue
-                    # print(f"Skipping existing {out_path}", flush=True)
-                    # continue
                 if args.normalize:
                         continue
                 if influence_estimate_a is None:
                     print("Loading features (FUNC)...")
-                    _, influence_estimate_a = load_results(args.sim_script_a, inner_args)
+                    _, influence_estimate_a = load_results(args.sim_script_a, build_inner_args(args, func_only=True))
                     print_peak_ram()
-                    _, influence_estimate_b = load_results(args.sim_script_b, inner_args)
+                    _, influence_estimate_b = load_results(args.sim_script_b, build_inner_args(args, func_only=True))
                     print_peak_ram()
                     print("Loaded features (REP).")
                 

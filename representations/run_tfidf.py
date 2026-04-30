@@ -40,10 +40,11 @@ class TFIDFEstimator(BaseEstimator):
 
 class TFIDFRepresentation(BaseRepresentation):
     def __init__(self, tokenized_docs, train_dataset, train_dataset_name, train_dataset_split,
-                 test_dataset, test_dataset_name, test_dataset_split, name="tfidf", results_only=False):
+                 test_dataset, test_dataset_name, test_dataset_split, name="tfidf", results_only=False, func_only=False):
         super().__init__(name, train_dataset, train_dataset_name, train_dataset_split,
                          test_dataset, test_dataset_name, test_dataset_split,
-                         "-", results_only=results_only)
+                         "-", results_only=results_only, func_only=func_only)
+        
         self.estimator = TFIDFEstimator(
                 model_path="-",
                 train_dataset=train_dataset,
@@ -73,7 +74,8 @@ class TFIDFRepresentation(BaseRepresentation):
             # Convert counts to TF-IDF
             tfidf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True)
             self.tfidf_matrix = tfidf_transformer.fit_transform(count_matrix)
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
     def _embed_doc(self, idx: int) -> torch.Tensor:
         vec = torch.tensor(self.tfidf_matrix[idx].toarray(), dtype=torch.float32)
         return vec.squeeze(0).cpu()
@@ -112,13 +114,14 @@ def main(args=None):
         test_dataset=test_dataset,
         test_dataset_name=args.test_dataset_name,
         test_dataset_split=args.test_dataset_split,
-        results_only=args.results_only
+        results_only=args.results_only,
+        func_only=args.func_only
     )
 
 
     # Cleanup
     del train_dataset, test_dataset, tokenizer
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 
 if __name__ == "__main__":
     main()

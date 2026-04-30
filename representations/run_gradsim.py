@@ -13,7 +13,7 @@ import pandas as pd
 from representations.load_data import (   
     load_data_and_estimators)
 class GradientRepresentation(BaseRepresentation):
-    def __init__(self, estimator, name="GradientRepresentation", results_only=False):
+    def __init__(self, estimator, name="GradientRepresentation", results_only=False,func_only=False,):
         super().__init__(name,
                          estimator.train_dataset,
                          estimator.train_dataset_name,
@@ -22,9 +22,11 @@ class GradientRepresentation(BaseRepresentation):
                          estimator.test_dataset_name,
                          estimator.test_dataset_split,
                          estimator.model_path,
-                         results_only=results_only)
+                         results_only=results_only,
+                         func_only=func_only,)
         self.estimator = estimator
-        self.estimator.embeddings = self.compute()
+        if not func_only:
+            self.estimator.embeddings = self.compute()
         
     def _embed_doc(self, idx: int) -> torch.Tensor:
         if self.results_only:
@@ -62,11 +64,11 @@ def main(args=None):
       )
 
 
-    rep = GradientRepresentation(estimator_less, name=f"gradsim_{args.mode}", results_only=args.results_only)
+    rep = GradientRepresentation(estimator_less, name=f"gradsim_{args.mode}", results_only=args.results_only, func_only=args.func_only,)
 
 
     del train_dataset, test_dataset
-    return rep.estimator.embeddings, rep.get_influence_estimate()
+    return (rep.estimator.embeddings, rep.get_influence_estimate()) if not args.func_only else (None, rep.get_influence_estimate())
 if __name__ == "__main__":
     main()
     
