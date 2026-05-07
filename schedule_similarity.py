@@ -48,7 +48,7 @@ def get_ram(exp, representation_name, cache_root="./cache/representations"):
 
 SCRIPTS = scripts_no_gpu + scripts_gpu
 KS = [-1]
-NORMALIZE = [True, False]
+NORMALIZE = [False]
 def main():
     for exp in experiments:
         for script_a, script_b in itertools.combinations_with_replacement(SCRIPTS, 2):

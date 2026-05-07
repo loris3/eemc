@@ -35,7 +35,7 @@ def write_batch(args):
 
 def merge_parquet_files(source_dir, target_dir, max_workers=None):
     os.makedirs(target_dir, exist_ok=True)
-    tmp_dir = os.path.join("/tmp", "tmp_batches_p")
+    tmp_dir = os.path.join("/tmp", "tmp_batches_p", os.path.basename(source_dir))
     os.makedirs(tmp_dir, exist_ok=True)
 
     files = [os.path.join(root, f)

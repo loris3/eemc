@@ -20,7 +20,7 @@ import time
 import subprocess
 logger = logging.getLogger(__name__)
 if not logger.hasHandlers():
-    logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+    logging.basicConfig(level=logging.ERROR, format='[%(levelname)s] %(message)s')
     
 def copy_file(src_file, src_root, dst_root):
     rel_path = os.path.relpath(src_file, src_root)
@@ -78,9 +78,9 @@ class BaseEstimator(ABC):
                 "_".join([self.test_dataset_name, self.test_dataset_split]),   
                 "estimate.parquet"   
             ) 
-        print("influence_estimate_path:", self.influence_estimate_path)
-        print("dirname:", os.path.dirname(self.influence_estimate_path))
-        print("exists:", os.path.exists(os.path.dirname(self.influence_estimate_path)))
+        # print("influence_estimate_path:", self.influence_estimate_path)
+        # print("dirname:", os.path.dirname(self.influence_estimate_path))
+        # print("exists:", os.path.exists(os.path.dirname(self.influence_estimate_path)))
         os.makedirs(os.path.dirname(self.influence_estimate_path), exist_ok=True)
            
         

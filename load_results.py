@@ -55,11 +55,14 @@ def abbreviate_row(row):
 
 
 def load():
-    return pd.read_parquet("./results/similarity_merged/")
+    df = pd.read_parquet("./results/similarity_merged/")
+    df = df[~df["normalize"]]
+    return df
 def format(df):
     
     df = df.apply(abbreviate_row, axis=1)
-    df["k"] = df["k"].fillna(-1)
+    if "k" in df.columns:
+        df["k"] = df["k"].fillna(-1)
     df["Rep_A"] = df["Rep_A"].str.replace(".py","")
     df["Rep_A"] = df["Rep_A"].str.replace("run_","")
     df["Rep_B"] = df["Rep_B"].str.replace(".py","")
@@ -68,7 +71,7 @@ def format(df):
     df["Rep_A"] = df["Rep_A"].str.replace("representations.","")
     df["Rep_B"] = df["Rep_B"].str.replace("representations.","")
 
-    df = df.drop(columns=["selection_strategy_name_a", "selection_strategy_name_b"])
+    
     with open("experiments.yaml", "r") as f:
         cfg = yaml.safe_load(f)
 
@@ -76,5 +79,6 @@ def format(df):
     df["base_model"] = df["model"].apply(
         lambda x: next(b for b in base_models if b in x)
     )
-    df["test_type"] = df["score_name"].apply(lambda s : "func" if (s in next(zip(*experiments_func))) else "rep")
+    if "score_name" in df.columns:
+        df["test_type"] = df["score_name"].apply(lambda s : "func" if (s in next(zip(*experiments_func))) else "rep")
     return df

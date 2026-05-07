@@ -32,6 +32,16 @@ def spearman(a,b,k):
                 print(f"[INFO] document {i} has const attribution")
         results.append(corr)
     return np.nanmean(results,axis=0)
+def kendall(a,b,k):
+    results = []
+    for i in range(a.shape[0]):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ConstantInputWarning)
+            corr = stats.kendalltau(a[i], b[i]).correlation
+            if np.isnan(corr):
+                print(f"[INFO] document {i} has const attribution")
+        results.append(corr)
+    return np.nanmean(results,axis=0)
 def rbo(a, b, k=None):
     results = []
 
@@ -95,7 +105,8 @@ experiments_func = [
         ("ndcg_k", lambda a, b, k: ndcg_k(a, b, k)),
         ("sign_agreement", lambda a, b, _: torch.mean(torch.stack([(torch.sign(a[i]) == torch.sign(b[i])).float().mean() for i in range(a.shape[0])])).item()),
         ("f1_at_k", lambda a, b, k: f1_at_k(a, b, k)),    
-        ("rbo", lambda a, b, _: rbo(a, b)),      
+        ("rbo", lambda a, b, _: rbo(a, b)),  
+        ("kendall", kendall)    
         ] 
 def print_peak_ram():
     usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -261,7 +272,7 @@ def main():
                 out_path = (results_path(results_folder_func, score_name, args.k, args))
                 # print("out_path", out_path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                if os.path.exists(out_path):
+                if os.path.exists(out_path) and score_name not in ["kendall"]:
                     print(f"Skipping existing FUNC {out_path}", flush=True)
                     continue
                 if args.normalize:

@@ -75,6 +75,8 @@ elif [[ "$SAFE_JOB_FILE" == *representations* ]]; then
     SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2,vader")
 elif [[ "$SAFE_JOB_FILE" == *similarity* ]]; then
     SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2,dgx1,vader")
+elif [[ "$SAFE_JOB_FILE" == *predictability* ]]; then
+    SBATCH_ARGS+=(--nodelist="galadriel,shelob,dgx-h100-em2,vader")
 else
     SBATCH_ARGS+=(--nodelist="$NODELIST")
 fi

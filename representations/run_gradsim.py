@@ -50,7 +50,7 @@ def main(args=None):
                                                            args.test_dataset_name, 
                                                            args.train_dataset_split, 
                                                            args.test_dataset_split)
-    print("MODE", args.mode)
+
     estimator_less = LESSEstimator(
         args.model,
         train_dataset,

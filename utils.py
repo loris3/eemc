@@ -13,7 +13,10 @@ import numpy as np
 from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
+import logging
 
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+logging.getLogger("datasets").setLevel(logging.WARNING)
 
 def load_lora_model(repo_id):
     """

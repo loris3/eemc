@@ -1,4 +1,8 @@
 import torch
+import logging
+
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+logging.getLogger("datasets").setLevel(logging.WARNING)
 import torch.nn.functional as F
 from abc import ABC, abstractmethod
 from pathlib import Path
