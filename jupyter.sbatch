@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name="[EEMC] Jupyter Lab Server"
-#SBATCH --mem=36G
+#SBATCH --mem=128G
 #SBATCH --cpus-per-task=12 
 #SBATCH --gres=gpu:0
 #SBATCH --time=0-10:00:00

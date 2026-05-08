@@ -9,19 +9,19 @@ from structural_similarity import experiments_rep, experiments_func, load_result
 warnings.filterwarnings("ignore", category=UserWarning, message=".*tight_layout.*")
 
 abbrev_map = {
-    'representations.run_bm25': r"$r_{{bm25}}$",
-    'representations.run_datainf': r"$r_{s_{{test}}}$",
+    'representations.run_bm25': r"$r_{bm25}$",
+    'representations.run_datainf': r"$r_{s_{test}}$",
     'representations.run_embd_KaLM-Embedding-Gemma3-12B-2511': 'kalm',
     'representations.run_embd_Qwen3-Embedding-8B': 'qwen',
-    'representations.run_full_model': r"$r_{{mp}}$",
+    'representations.run_full_model': r"$r_{mp}$",
     'representations.run_gradsim_adam': r"$r_{\nabla f}^{aa}$",
     'representations.run_gradsim_unnormalized': r"$r^{id_{X}}_{\nabla f}$",
     'representations.run_gradsim_normalized': r"$r^{L2}_{\nabla f}$",
-    'representations.run_repsim': r"$r_{{repsim}}$",
-    'representations.run_norm_attn': r"$r_{{attn}}$",
+    'representations.run_repsim': r"$r_{repsim}$",
+    'representations.run_norm_attn': r"$r_{attn}$",
     'representations.run_embd_llama-embed-nemotron-8b': 'nemot',
-    'representations.run_jaccard':  r"$r_{{jaccard}}$",
-    'representations.run_tfidf':  r"$r_{{tfidf}}$",
+    'representations.run_jaccard':  r"$r_{jaccard}$",
+    'representations.run_tfidf':  r"$r_{tfidf}$",
 }
 
 abbrev_map_strategy = {
