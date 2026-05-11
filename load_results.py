@@ -23,6 +23,10 @@ abbrev_map = {
     'representations.run_jaccard':  r"$r_{jaccard}$",
     'representations.run_tfidf':  r"$r_{tfidf}$",
 }
+abbrev_map_model = {
+    "Qwen3-0.6B-Base": "Qwen3-0.6B",
+    "Olmo-3-1025-7B": "Olmo-3-7B"
+}
 
 abbrev_map_strategy = {
     'most_influential': r" {most inf}$",
