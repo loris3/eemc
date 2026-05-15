@@ -24,8 +24,13 @@ abbrev_map = {
     'representations.run_tfidf':  r"$r_{tfidf}$",
 }
 abbrev_map_model = {
+    "Llama-3.2-1B":    "Llama3.2-1B",
+    "OLMo-2-0425-1B":  "OLMo2-1B",
+    "Olmo-3-1025-7B":  "OLMo3-7B",
     "Qwen3-0.6B-Base": "Qwen3-0.6B",
-    "Olmo-3-1025-7B": "Olmo-3-7B"
+    "Qwen3-1.7B-Base": "Qwen3-1.7B",
+    "Qwen3-4B-Base":   "Qwen3-4B",
+    "Qwen3-8B-Base":   "Qwen3-8B",
 }
 
 abbrev_map_strategy = {
@@ -33,6 +38,13 @@ abbrev_map_strategy = {
     'least_influential': r" {least inf}$",
     'most_harmful': r" {harm}$",
     'most_helpful': r" {help}$",
+}
+abbrev_map_task = {
+    'squad_v2': r"squad\_v2",
+   
+}
+abbrev_map_score = {
+    'spearman_rho': "$\\rho$",
 }
 
 def abbreviate_row(row):
