@@ -45,6 +45,10 @@ abbrev_map_task = {
 }
 abbrev_map_score = {
     'spearman_rho': "$\\rho$",
+    'kendall': "$\\tau$",
+    'rbo': "RBO",
+    'cka': 'CKA',
+    'cknna': 'CKNNA@25',
     'pw_acc': "$acc_{\\text{pred}}$",
 }
 

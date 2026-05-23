@@ -75,7 +75,6 @@ def main():
         LESSEstimator(args.model_dir, train_dataset, args.train_dataset, args.train_dataset_split, test_dataset, args.test_dataset, args.test_dataset_split, mode="unnormalized"),
         LESSEstimator(args.model_dir, train_dataset, args.train_dataset, args.train_dataset_split, test_dataset, args.test_dataset, args.test_dataset_split, mode="adam"),
         DataInfEstimator(args.model_dir, train_dataset, args.train_dataset, args.train_dataset_split, test_dataset, args.test_dataset, args.test_dataset_split),
-        # BM25Estimator(args.model_dir, train_dataset, args.train_dataset, args.train_dataset_split, test_dataset, args.test_dataset, args.test_dataset_split)
     ]
     for estimator in estimators:
         print(estimator.get_config_string)

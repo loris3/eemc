@@ -15,9 +15,6 @@ ulimit -n 65535
 pip show datasets
 
 
-
-
-
 readarray -t MODEL_IE_CONFIGS < <(
 python3 - << 'EOF'
 import yaml
@@ -51,6 +48,6 @@ for CONFIG in "${MODEL_IE_CONFIGS[@]}"; do
     --train_dataset_split=test \
     --test_dataset_split=test
 
-  # Clear cache after each run
+  # Clear ramdisk after each run
   rm -rf /tmp/cache/gradients
 done

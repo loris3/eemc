@@ -1,6 +1,5 @@
 *.sqsh
 *.out
-/trak_test.py
 /data
 *.pyc
 *.log
@@ -40,7 +39,6 @@ fi
 *.out
 tables/*
 tables/olmes-external.tex
---blocking-factor=512
 models_causal/*
 results.tar.gz
 *.csv
@@ -54,11 +52,9 @@ validation.txt
 scoring.txt
 merge_fail_list_scoring.txt
 figures/*
-NotoColorEmoji-Regular.ttf
 *_executed.ipynb
 srun
 survey
-models_old/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42/checkpoint-630/optimizer.pt
 test.sh
 test.py
 issue.sbatch
@@ -68,3 +64,4 @@ Untitled-3
 Untitled-4
 p_low
 out/case_study.ipynb
+merge_results.sh
