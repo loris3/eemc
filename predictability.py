@@ -256,10 +256,10 @@ def main():
                 os.path.basename(args.sim_script_a),
                 os.path.basename(args.sim_script_b),
 
-                summary["mean_w"],              # global average predictability
-                summary["std_w"],               # heterogeneity across instances
-                summary["mean_accuracy"],       # average held-out prediction accuracy
-                summary["n_instances"],         # number of successfully fit instances
+                summary["mean_w"],              
+                summary["std_w"],               
+                summary["mean_accuracy"],      
+                summary["n_instances"],         
 
                 args.model,
                 args.train_dataset_name,

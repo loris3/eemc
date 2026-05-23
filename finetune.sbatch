@@ -8,7 +8,7 @@
 #SBATCH --container-writable 
 #SBATCH --partition=p_datamining
 #SBATCH --account=datamining
-# Print environment info
+
 python3 --version
 df -h
 
@@ -81,8 +81,7 @@ for ENTRY in "${BASE_MODELS[@]}"; do
       --logging_steps "50" \
       --save_total_limit "2" \
       --bf16 "true" \
-      --report_to "wandb"\
-      # --fsdp "full_shard auto_wrap"
+      --report_to "wandb"
 
 
   done

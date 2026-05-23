@@ -5,7 +5,7 @@ import math
 import os
 
 def get_dir_size_gb(path: str) -> float:
-    """Return directory size in GB."""
+    """Returns directory size in GB."""
     total_size = 0
     for dirpath, _, filenames in os.walk(path):
         for f in filenames:

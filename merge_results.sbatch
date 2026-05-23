@@ -11,4 +11,5 @@ ulimit -n 65535
 
 echo "Start"
 python3 merge_results.py --source_dir="results/similarity" --target_dir="results/similarity_merged"
+python3 merge_results.py --source_dir="results/rank_predictability" --target_dir="results/rank_predictability_merged"
 echo "Done!"

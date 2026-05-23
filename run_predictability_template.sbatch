@@ -15,6 +15,5 @@ SCRIPT_PATH="$1"
 shift
 ARGS="$@"
 
-# Run the Python script
 pwd
 python3 -m "$SCRIPT_PATH" $ARGS

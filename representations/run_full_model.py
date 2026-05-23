@@ -40,7 +40,7 @@ class FullModelEstimator(BaseEstimator):
         os.makedirs(os.path.dirname(self.influence_estimate_path), exist_ok=True)
         self.save()
         
-# --- FullModelRepresentation ---
+
 class FullModelRepresentation(BaseRepresentation):
     def __init__(self, model, tokenized_dataset, train_dataset, train_dataset_name,
                  train_dataset_split, test_dataset, test_dataset_name, test_dataset_split,

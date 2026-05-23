@@ -81,7 +81,7 @@ def main(args=None):
     parser = add_common_args(parser)
     args = parser.parse_args(args)
 
-    # Load datasets
+   
     train_dataset, test_dataset = load_data_and_estimators(
         args.train_dataset_name,
         args.test_dataset_name,

@@ -1,1 +1,0 @@
-srun --job-name="[EEMC] Repesentational Alignment Measures Tests"   --mem=60G   --cpus-per-task=12   --gres=gpu:1   --time=0-10:00:00   --nodes=1 --container-mount-home --container-image="ghcr.io#loris3/eemc:latest" --container-workdir=/mnt/nlp-data/home/users/loriss21cs/eemc --account=datamining --partition=p_datamining --pty bash

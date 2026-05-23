@@ -10,7 +10,7 @@
 python3 --version
 df -h
 
-# Script path is the first argument
+
 SCRIPT_PATH="$1"
 shift
 ARGS="$@"

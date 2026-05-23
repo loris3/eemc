@@ -1,4 +1,5 @@
-# this is https://github.com/minyoungg/platonic-rep/blob/dcd76ba3c950c1b197a2ae8b1c6713535c94ecf9/metrics.py
+# this is an adaptation of measures implemented by Huh et al. (2024)
+# https://github.com/minyoungg/platonic-rep/blob/dcd76ba3c950c1b197a2ae8b1c6713535c94ecf9/metrics.py
 import torch
 import torchaudio.functional as TAF
 

@@ -179,7 +179,3 @@ def main():
 if __name__ == "__main__":
     main()
     
-# python3 qa_eval.py     --model_path ./models/OLMo-2-0425-1B_ftrace_date-lm_conversational_lr0.0001_seed42     --dataset loris3/ftrace_date-lm_conversational --split=train    
-
-# python3 qa_eval.py     --model_path ./models/OLMo-2-0425-1B_squad_v2_conversational_lr1e-05_seed42     --dataset loris3/squad_v2_conversational --split=validation    
-# python3 qa_eval.py     --model_path ./models/OLMo-2-0425-1B_tulu-3-hard-coded-10x_lr1e-05_seed42     --dataset allenai/tulu-3-hard-coded-10x --split=train    
