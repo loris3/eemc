@@ -45,6 +45,7 @@ abbrev_map_task = {
 }
 abbrev_map_score = {
     'spearman_rho': "$\\rho$",
+    'pw_acc': "$acc_{\\text{pred}}$",
 }
 
 def abbreviate_row(row):
@@ -71,8 +72,40 @@ def abbreviate_row(row):
 
 
 def load():
-    df = pd.read_parquet("./results/similarity_merged/")
+    df_predictability = pd.read_parquet("./results/rank_predictability_merged")
+    df_predictability = df_predictability.assign(
+        score_name="pw_acc",
+        score=df_predictability["mean_accuracy"],
+        k=-1,           
+        normalize=False    
+    )[[
+        "Experiment",
+        "Rep_A",
+        "Rep_B",
+        "score_name",
+        "score",
+        "k",
+        "normalize",
+        "model",
+        "train_dataset",
+        "train_dataset_split",
+        "test_dataset",
+        "test_dataset_split",
+        "selection_strategy_name_a",
+        "selection_strategy_name_b"
+    ]]
+
+
+
+
+    df_similarity = df = pd.read_parquet("./results/similarity_merged/")
+
+    df = pd.concat([df_predictability, df_similarity])
+
+
     df = df[~df["normalize"]]
+    df = df[~df["score_name"].isin(["ndcg","ndcg_k", "rbo_k", "spearman_rho_k", "kendall_k"])]
+    df = df[~((df["k"] != -1)&(df["score_name"].isin(["cka","unbiased_cka", "spearman_rho","kendall", "sign_agreement", "rbo"])))]
     return df
 def format(df):
     

@@ -87,10 +87,10 @@ def build_pairwise_data_for_instance(
     a = a[mask]
     b = b[mask]
 
-    valid = scores_j[a] != scores_j[b]
+    # valid = scores_j[a] != scores_j[b]
 
-    a = a[valid]
-    b = b[valid]
+    # a = a[valid]
+    # b = b[valid]
 
     x = scores_i[a] - scores_i[b]
     x = (x - x.mean()) / (x.std() + 1e-8)
@@ -210,9 +210,9 @@ def main():
                 if is_IF(args.sim_script_b) else "-"
             )
 
-            if os.path.exists(out_path):
-                print(f"Skipping existing result: {out_path}")
-                continue
+            # if os.path.exists(out_path):
+            #     print(f"Skipping existing result: {out_path}")
+            #     continue
             
             if df_i_raw is None:
                 _, df_i_raw = load_results(

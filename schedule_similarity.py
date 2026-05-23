@@ -47,7 +47,7 @@ def get_ram(exp, representation_name, cache_root="./cache/representations"):
     return math.ceil(size_gb)   
 
 SCRIPTS = scripts_no_gpu + scripts_gpu
-KS = [-1]
+KS = [-1,25]
 NORMALIZE = [False]
 def main():
     for exp in experiments:

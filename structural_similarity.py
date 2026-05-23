@@ -94,9 +94,9 @@ def f1_at_k(a, b, k):
 
 experiments_rep = [
     ("cka", lambda a,b,k: AlignmentMetrics.cka(a,b)),
-    ("unbiased_cka", lambda a,b,k: AlignmentMetrics.unbiased_cka(a,b)),
+    # ("unbiased_cka", lambda a,b,k: AlignmentMetrics.unbiased_cka(a,b)),
     ### ("svcca", lambda a,b,k: AlignmentMetrics.svcca(a,b)),
-    # ("cknna", lambda a,b,k: AlignmentMetrics.cknna(a,b,topk=k)),
+    ("cknna", lambda a,b,k: AlignmentMetrics.cknna(a,b,topk=k)),
     # ("cycle_knn", lambda a,b,k: AlignmentMetrics.cycle_knn(a,b,topk=k)),
 ]
 experiments_func = [
@@ -215,7 +215,7 @@ def main():
             continue
         out_path = results_path(results_folder_rep, score_name, args.k, args)
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        if os.path.exists(out_path):
+        if os.path.exists(out_path)  and (score_name not in ["cknna"]):
             # pass
             print(f"Skipping existing REP {out_path}", flush=True)
             continue
@@ -272,7 +272,7 @@ def main():
                 out_path = (results_path(results_folder_func, score_name, args.k, args))
                 # print("out_path", out_path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                if os.path.exists(out_path) and score_name not in ["kendall"]:
+                if os.path.exists(out_path):
                     print(f"Skipping existing FUNC {out_path}", flush=True)
                     continue
                 if args.normalize:

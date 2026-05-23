@@ -289,6 +289,16 @@ class AlignmentMetrics:
             
             # intersection of nearest neighbors
             mask = mask_K * mask_L
+            if mask.sum() == 0:
+                return 0.0
+            
+            MK = mask * K
+            ML = mask * L
+            if (not torch.isfinite(MK).all()) or (not torch.isfinite(ML).all()):
+                return 0.0
+
+            if MK.var() < 1e-12 or ML.var() < 1e-12:
+                return 0.0
                         
             if distance_agnostic:
                 sim = mask * 1.0
@@ -302,8 +312,14 @@ class AlignmentMetrics:
         sim_kl = similarity(K, L, topk)
         sim_kk = similarity(K, K, topk)
         sim_ll = similarity(L, L, topk)
+        
+        if (not torch.isfinite(sim_kk)) or (not torch.isfinite(sim_ll)) or (sim_kk <= 0) or (sim_ll <= 0):
+            return 0.0
                 
-        return sim_kl.item() / (torch.sqrt(sim_kk * sim_ll) + 1e-6).item()
+        den = torch.sqrt(sim_kk * sim_ll).clamp_min(1e-6)
+        result = (sim_kl / den).item()
+        assert not (result != result or result == float("inf") or result == float("-inf")), f"CKNNA produced invalid value: {result}, sim_kl={sim_kl}, den={den}"
+        return result
 
 
 def hsic_unbiased(K, L):
