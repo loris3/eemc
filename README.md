@@ -1,5 +1,7 @@
 Repository for the paper *On Representational and Functional Alignment of Training Data Attribution Methods for Language Models*.
 
+See `./out/` for notebooks.
+
 All models and data will be made available via the HuggingFace Hub.
 ### Building Docker Images
 1. Build dockefiles in `./docker` and push them to a Docker registry
