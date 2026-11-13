@@ -2,7 +2,7 @@ Repository for the paper *On Representational and Functional Alignment of Traini
 
 See `./out/` for notebooks.
 
-All models and data will be made available via the HuggingFace Hub.
+All models and data are made available via the Hugging Face Hub in [this collection](https://hf.co/collections/loris3/on-rep-and-func-alignment-of-tda-methods-for-lms).
 ### Building Docker Images
 1. Build dockefiles in `./docker` and push them to a Docker registry
 3. Set `CONTAINER_IMAGE` and `CONTAINER_IMAGE_EVAL` in the `.env` file accordingly
