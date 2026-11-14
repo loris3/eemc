@@ -1,5 +1,7 @@
 Repository for the paper *On Representational and Functional Alignment of Training Data Attribution Methods for Language Models*.
 
+Accepted at **EACL 2027**.
+
 See `./out/` for notebooks.
 
 All models and data are made available via the Hugging Face Hub in [this collection](https://hf.co/collections/loris3/on-rep-and-func-alignment-of-tda-methods-for-lms).
